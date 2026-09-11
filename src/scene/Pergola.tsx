@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
@@ -470,18 +470,196 @@ function Louvers({
  *   - Double central French doors: leaves N-1 and N meet at center and swing outward left & right
  *   - Outer leaves stay fixed in place
  */
+interface ScreenSideProps {
+  position: [number, number, number]
+  rotation: [number, number, number]
+  screenSpan: number
+  height: number
+  opening: number
+  extOpening?: number
+  isDual: boolean
+  nodes: Record<string, THREE.Object3D>
+  structureMat: THREE.Material
+  kristallMat: THREE.Material
+  textures: {
+    soltisDiff: THREE.Texture
+    soltisNorm: THREE.Texture
+    ferrariDiff: THREE.Texture
+    ferrariNorm: THREE.Texture
+  }
+  weave: 'soltis' | 'ferrari'
+  fabricColor: string
+  fabricSliceX: number
+  fabricDropY: number
+}
+
+function ScreenSide({
+  position,
+  rotation,
+  screenSpan,
+  height,
+  opening,
+  extOpening,
+  isDual,
+  nodes,
+  structureMat,
+  kristallMat,
+  textures,
+  weave,
+  fabricColor,
+  fabricSliceX,
+  fabricDropY
+}: ScreenSideProps) {
+  const intDropHeight = THREE.MathUtils.clamp(opening * (height - 0.06), 0.02, height - 0.06)
+  const intDropScale = intDropHeight / fabricDropY
+
+  const actualExtOpening = extOpening ?? opening
+  const extDropHeight = THREE.MathUtils.clamp(actualExtOpening * (height - 0.06), 0.02, height - 0.06)
+  const extDropScale = extDropHeight / fabricDropY
+
+  // Metric proportional repeat: maintains 1:1 square tiles and constant physical density
+  // Serge Ferrari open mesh requires 5x tiling on U and V; Soltis 92 uses 1x base tiling.
+  const baseTiling = weave === 'ferrari' ? 5.0 : 1.0
+  const repX = baseTiling * screenSpan
+  const repY = baseTiling * intDropHeight
+
+  const { fabricMat, diffTex, normTex } = useMemo(() => {
+    const rawDiff = weave === 'ferrari' ? textures.ferrariDiff : textures.soltisDiff
+    const rawNorm = weave === 'ferrari' ? textures.ferrariNorm : textures.soltisNorm
+
+    // Cloned textures so each side has independent repeat scaling without duplicating GPU VRAM
+    const diff = rawDiff.clone()
+    const norm = rawNorm.clone()
+
+    diff.wrapS = diff.wrapT = THREE.RepeatWrapping
+    norm.wrapS = norm.wrapT = THREE.RepeatWrapping
+    diff.colorSpace = THREE.SRGBColorSpace
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: fabricColor,
+      map: diff,
+      normalMap: norm,
+      normalScale: new THREE.Vector2(0.75, 0.75),
+      roughness: 0.85,
+      metalness: 0.04,
+      transparent: true,
+      alphaTest: 0.05,
+      depthWrite: true,
+      side: THREE.DoubleSide
+    })
+
+    return { fabricMat: mat, diffTex: diff, normTex: norm }
+  }, [weave, fabricColor, textures])
+
+  // Dynamically update texture repeats as pergola width, depth or curtain drop change
+  useMemo(() => {
+    diffTex.repeat.set(repX, repY)
+    normTex.repeat.set(repX, repY)
+  }, [diffTex, normTex, repX, repY])
+
+  useEffect(() => {
+    return () => {
+      diffTex.dispose()
+      normTex.dispose()
+      fabricMat.dispose()
+    }
+  }, [diffTex, normTex, fabricMat])
+
+  const fabricNode = nodes.panel_shade_fabric || nodes.panel_thermal_fabric
+  const housingNode = nodes.panel_shade_housing || nodes.panel_thermal_housing
+
+  return (
+    <group position={position} rotation={rotation}>
+      {!isDual ? (
+        <group position={[0, -0.002, 0]}>
+          {/* Fabric unrolls from top down to intDropHeight */}
+          <Part
+            node={fabricNode}
+            anchor="topCenter"
+            scale={[screenSpan / fabricSliceX, intDropScale, 1]}
+            material={fabricMat}
+            castShadow={true}
+          />
+          {/* Bottom closure bar with silicone seal facing DOWN, glides down with fabric */}
+          <Part
+            node={housingNode}
+            anchor="topCenter"
+            position={[0, -intDropHeight, 0]}
+            rotation={[Math.PI, 0, 0]}
+            scale={[screenSpan / fabricSliceX, 1, 1]}
+            material={structureMat}
+          />
+        </group>
+      ) : (
+        /* Dual Screen (2 Tende): 2 tandem rollers side by side
+           - Track 1 (External, +0.035): Transparent PVC Kristall
+           - Track 2 (Internal, -0.035): Shade fabric
+        */
+        <group position={[0, -0.002, 0]}>
+          {/* Track 1: Outdoor Clear PVC Kristall Screen */}
+          <group position={[0, 0, 0.035]}>
+            <Part
+              node={fabricNode}
+              anchor="topCenter"
+              scale={[screenSpan / fabricSliceX, extDropScale, 1]}
+              material={kristallMat}
+              castShadow={false}
+            />
+            <Part
+              node={housingNode}
+              anchor="topCenter"
+              position={[0, -extDropHeight, 0]}
+              rotation={[Math.PI, 0, 0]}
+              scale={[screenSpan / fabricSliceX, 1, 1]}
+              material={structureMat}
+            />
+          </group>
+
+          {/* Track 2: Indoor Sun Shade Fabric */}
+          <group position={[0, 0, -0.035]}>
+            <Part
+              node={fabricNode}
+              anchor="topCenter"
+              scale={[screenSpan / fabricSliceX, intDropScale, 1]}
+              material={fabricMat}
+              castShadow={true}
+            />
+            <Part
+              node={housingNode}
+              anchor="topCenter"
+              position={[0, -intDropHeight, 0]}
+              rotation={[Math.PI, 0, 0]}
+              scale={[screenSpan / fabricSliceX, 1, 1]}
+              material={structureMat}
+            />
+          </group>
+        </group>
+      )}
+    </group>
+  )
+}
+
 function Sides({
   nodes,
   structureMat,
-  fabricMat,
   kristallMat,
-  glassMat
+  glassMat,
+  textures,
+  weave,
+  fabricColor
 }: {
   nodes: Record<string, THREE.Object3D>
   structureMat: THREE.Material
-  fabricMat: THREE.Material
   kristallMat: THREE.Material
   glassMat: THREE.Material
+  textures: {
+    soltisDiff: THREE.Texture
+    soltisNorm: THREE.Texture
+    ferrariDiff: THREE.Texture
+    ferrariNorm: THREE.Texture
+  }
+  weave: 'soltis' | 'ferrari'
+  fabricColor: string
 }) {
   const width = useConfigSelector((s) => s.width)
   const depth = useConfigSelector((s) => s.depth)
@@ -489,7 +667,10 @@ function Sides({
   const sides = useConfigSelector((s) => s.sides)
   const mounting = useConfigSelector((s) => s.mounting)
 
-  const fabThermal = useMemo(() => localBox(nodes.panel_thermal_fabric), [nodes.panel_thermal_fabric])
+  const fabThermal = useMemo(
+    () => localBox(nodes.panel_thermal_fabric || nodes.panel_shade_fabric),
+    [nodes.panel_thermal_fabric, nodes.panel_shade_fabric]
+  )
   const fabricSliceX = Math.max(0.005, fabThermal.max.x - fabThermal.min.x)
   const fabricDropY = Math.max(0.01, fabThermal.max.y - fabThermal.min.y)
 
@@ -551,83 +732,25 @@ function Sides({
 
         // ================= SCREENS (1 or 2 Tende) =================
         if (sc.system === 'panel1' || sc.system === 'panel2') {
-          const isPanel2 = sc.system === 'panel2'
-          const intDropHeight = THREE.MathUtils.clamp(sc.opening * (H - 0.06), 0.02, H - 0.06)
-          const intDropScale = intDropHeight / fabricDropY
-
-          const extOpening = sc.openingExternal ?? sc.opening
-          const extDropHeight = THREE.MathUtils.clamp(extOpening * (H - 0.06), 0.02, H - 0.06)
-          const extDropScale = extDropHeight / fabricDropY
-
           return (
-            <group key={k} position={[g.center[0], H, g.center[2]]} rotation={[0, sideRotY, 0]}>
-              {/* Single Screen: 1 shade fabric + movable bottom bar */}
-              {!isPanel2 ? (
-                <group position={[0, -0.002, 0]}>
-                  {/* Fabric unrolls from top down to intDropHeight */}
-                  <Part
-                    node={nodes.panel_shade_fabric}
-                    anchor="topCenter"
-                    scale={[screenSpan / fabricSliceX, intDropScale, 1]}
-                    material={fabricMat}
-                    castShadow={true}
-                  />
-                  {/* Bottom closure bar with silicone seal facing DOWN, glides down with fabric */}
-                  <Part
-                    node={nodes.panel_shade_housing}
-                    anchor="topCenter"
-                    position={[0, -intDropHeight, 0]}
-                    rotation={[Math.PI, 0, 0]}
-                    scale={[screenSpan / fabricSliceX, 1, 1]}
-                    material={structureMat}
-                  />
-                </group>
-              ) : (
-                /* Dual Screen (2 Tende): 2 tandem rollers side by side
-                   - Track 1 (External, +0.035): Transparent PVC Kristall
-                   - Track 2 (Internal, -0.035): Shade fabric
-                */
-                <group position={[0, -0.002, 0]}>
-                  {/* Track 1: Outdoor Clear PVC Kristall Screen */}
-                  <group position={[0, 0, 0.035]}>
-                    <Part
-                      node={nodes.panel_shade_fabric}
-                      anchor="topCenter"
-                      scale={[screenSpan / fabricSliceX, extDropScale, 1]}
-                      material={kristallMat}
-                      castShadow={false}
-                    />
-                    <Part
-                      node={nodes.panel_shade_housing}
-                      anchor="topCenter"
-                      position={[0, -extDropHeight, 0]}
-                      rotation={[Math.PI, 0, 0]}
-                      scale={[screenSpan / fabricSliceX, 1, 1]}
-                      material={structureMat}
-                    />
-                  </group>
-
-                  {/* Track 2: Indoor Sun Shade Fabric */}
-                  <group position={[0, 0, -0.035]}>
-                    <Part
-                      node={nodes.panel_shade_fabric}
-                      anchor="topCenter"
-                      scale={[screenSpan / fabricSliceX, intDropScale, 1]}
-                      material={fabricMat}
-                      castShadow={true}
-                    />
-                    <Part
-                      node={nodes.panel_shade_housing}
-                      anchor="topCenter"
-                      position={[0, -intDropHeight, 0]}
-                      rotation={[Math.PI, 0, 0]}
-                      scale={[screenSpan / fabricSliceX, 1, 1]}
-                      material={structureMat}
-                    />
-                  </group>
-                </group>
-              )}
-            </group>
+            <ScreenSide
+              key={k}
+              position={[g.center[0], H, g.center[2]]}
+              rotation={[0, sideRotY, 0]}
+              screenSpan={screenSpan}
+              height={H}
+              opening={sc.opening}
+              extOpening={sc.openingExternal}
+              isDual={sc.system === 'panel2'}
+              nodes={nodes}
+              structureMat={structureMat}
+              kristallMat={kristallMat}
+              textures={textures}
+              weave={weave}
+              fabricColor={fabricColor}
+              fabricSliceX={fabricSliceX}
+              fabricDropY={fabricDropY}
+            />
           )
         }
 
@@ -775,43 +898,23 @@ export function Pergola() {
   })
 
   useMemo(() => {
-    const configTex = (tex: THREE.Texture, repX: number, repY: number, isColor: boolean) => {
+    const configTex = (tex: THREE.Texture, isColor: boolean) => {
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-      tex.repeat.set(repX, repY)
       if (isColor) tex.colorSpace = THREE.SRGBColorSpace
     }
-    // Soltis 92 micro-weave
-    configTex(textures.soltisDiff, 4, 4, true)
-    configTex(textures.soltisNorm, 4, 4, false)
-    // Serge Ferrari open mesh
-    configTex(textures.ferrariDiff, 5, 5, true)
-    configTex(textures.ferrariNorm, 5, 5, false)
+    configTex(textures.soltisDiff, true)
+    configTex(textures.soltisNorm, false)
+    configTex(textures.ferrariDiff, true)
+    configTex(textures.ferrariNorm, false)
   }, [textures])
 
   // Dynamic PBR Materials for authentic architectural finishes
-  const { structureMat, fabricMat, kristallMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
+  const { structureMat, kristallMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
     const sMat = new THREE.MeshStandardMaterial({
       color: cfg.colors.structure,
       roughness: cfg.colors.structureRoughness,
       metalness: cfg.colors.structureMetalness,
       envMapIntensity: 1.1,
-      side: THREE.DoubleSide
-    })
-
-    const weave = cfg.fabricWeave || 'soltis'
-    const activeDiff = weave === 'ferrari' ? textures.ferrariDiff : textures.soltisDiff
-    const activeNorm = weave === 'ferrari' ? textures.ferrariNorm : textures.soltisNorm
-
-    // Fabric material — applied exclusively to the sun screen fabric (panel_shade_fabric / panel_thermal_fabric)
-    const fMat = new THREE.MeshStandardMaterial({
-      color: cfg.colors.fabric,
-      map: activeDiff,
-      normalMap: activeNorm,
-      normalScale: new THREE.Vector2(0.75, 0.75),
-      roughness: 0.85,
-      metalness: 0.04,
-      transparent: true,
-      alphaTest: 0.08, // Crisp micro-perforations with rock-solid depth sorting
       side: THREE.DoubleSide
     })
 
@@ -863,7 +966,6 @@ export function Pergola() {
 
     return {
       structureMat: sMat,
-      fabricMat: fMat,
       kristallMat: kMat,
       glassMat: gMat,
       ledBeamMat: bLedMat,
@@ -880,9 +982,11 @@ export function Pergola() {
       <Sides
         nodes={nodes}
         structureMat={structureMat}
-        fabricMat={fabricMat}
         kristallMat={kristallMat}
         glassMat={glassMat}
+        textures={textures}
+        weave={cfg.fabricWeave || 'soltis'}
+        fabricColor={cfg.colors.fabric}
       />
     </group>
   )
