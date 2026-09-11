@@ -10,7 +10,7 @@
 import { useConfigSelector } from '../lib/store'
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import * as THREE from 'three'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo } from 'react'
 
 const SUN_RADIUS = 28
 
@@ -25,15 +25,6 @@ function sunVector(azimuthDeg: number, elevationDeg: number): THREE.Vector3 {
 export function SceneEnv() {
   const sun = useConfigSelector((s) => s.sun)
   const lightingMode = useConfigSelector((s) => s.lightingMode)
-
-  const [hasHdr, setHasHdr] = useState(false)
-
-  // Check if custom environment HDRI texture is present in public/textures/
-  useEffect(() => {
-    fetch('/textures/environment.hdr', { method: 'HEAD' })
-      .then((r) => setHasHdr(r.ok))
-      .catch(() => setHasHdr(false))
-  }, [])
 
   const dir = useMemo(() => sunVector(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation])
   const sunPos = useMemo(() => dir.clone().multiplyScalar(SUN_RADIUS), [dir])
@@ -118,14 +109,8 @@ export function SceneEnv() {
             rotation={[0, Math.PI / 2, 0]}
           />
         </Environment>
-      ) : hasHdr ? (
-        /* Outdoor Sky Mode — Custom User HDRI Texture */
-        <Environment
-          files="/textures/environment.hdr"
-          environmentIntensity={skyIntensity * 1.2}
-        />
       ) : (
-        /* Outdoor Sky Mode — Fallback Procedural Sky Dome */
+        /* Outdoor Sky Mode — Dynamic Sun-Tracked Procedural Sky Dome */
         <Environment resolution={512} environmentIntensity={skyIntensity * 1.15}>
           <Lightformer
             form="circle"

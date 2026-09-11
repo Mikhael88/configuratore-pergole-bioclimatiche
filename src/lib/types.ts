@@ -52,7 +52,10 @@ export interface PergolaConfig {
   activeStep: number // 0..4 wizard step
   sun: { azimuth: number; elevation: number }
   colors: Colors
+  fabricWeave: FabricWeave
 }
+
+export type FabricWeave = 'soltis' | 'ferrari'
 
 export interface StructureFinishPreset {
   id: string
@@ -77,19 +80,19 @@ export interface GlassPreset {
 }
 
 export const STRUCTURE_FINISHES: StructureFinishPreset[] = [
-  { id: 'ral-7016', name: 'Antracite Sablé (RAL 7016)', hex: '#373e43', metalness: 0.15, roughness: 0.38 },
-  { id: 'ral-9010', name: 'Bianco Puro (RAL 9010)', hex: '#f5f6f7', metalness: 0.05, roughness: 0.32 },
-  { id: 'corten', name: 'Effetto Corten Rustico', hex: '#7c4328', metalness: 0.25, roughness: 0.58 },
-  { id: 'bronzo', name: 'Bronzo Architetturale', hex: '#3d342d', metalness: 0.65, roughness: 0.35 },
-  { id: 'ral-7021', name: 'Nero Grafite (RAL 7021)', hex: '#242729', metalness: 0.15, roughness: 0.34 },
-  { id: 'anodizzato', name: 'Alluminio Anodizzato', hex: '#c5cad0', metalness: 0.85, roughness: 0.22 }
+  { id: 'antracite', name: 'Antracite Opaco', hex: '#373e43', metalness: 0.08, roughness: 0.82 },
+  { id: 'salvia', name: 'Verde Salvia Opaco', hex: '#778572', metalness: 0.06, roughness: 0.85 },
+  { id: 'rosso', name: 'Rosso Fuoco Semi Lucido', hex: '#b92525', metalness: 0.18, roughness: 0.28 },
+  { id: 'tortora', name: 'Tortora Caldo', hex: '#8e8275', metalness: 0.05, roughness: 0.78 },
+  { id: 'bianco', name: 'Bianco Gesso', hex: '#eaeae5', metalness: 0.03, roughness: 0.80 }
 ]
 
 export const FABRIC_PRESETS: FabricPreset[] = [
-  { id: 'taupe', name: 'Taupe Deserto (GDLM2)', hex: '#67574e' },
-  { id: 'avorio', name: 'Avorio Naturale', hex: '#e8e2d4' },
-  { id: 'antracite', name: 'Grigio Fumo Scuro', hex: '#2b2d2f' },
-  { id: 'perla', name: 'Grigio Perla Chiaro', hex: '#c5c8c9' }
+  { id: 'antracite', name: 'Antracite Opaco', hex: '#373e43' },
+  { id: 'salvia', name: 'Verde Salvia Opaco', hex: '#778572' },
+  { id: 'rosso', name: 'Rosso Fuoco Semi Lucido', hex: '#b92525' },
+  { id: 'tortora', name: 'Tortora Caldo', hex: '#8e8275' },
+  { id: 'bianco', name: 'Bianco Gesso', hex: '#eaeae5' }
 ]
 
 export const GLASS_PRESETS: GlassPreset[] = [
@@ -137,6 +140,7 @@ export const defaultConfig: PergolaConfig = {
   showDimensions: true,
   activeStep: 0,
   sun: { azimuth: 135, elevation: 48 },
+  fabricWeave: 'soltis',
   colors: {
     structure: STRUCTURE_FINISHES[0].hex,
     structureRoughness: STRUCTURE_FINISHES[0].roughness,

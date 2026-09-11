@@ -92,7 +92,8 @@ export async function generateSpecificationPdf(
   const fabPreset = FABRIC_PRESETS.find(
     (f) => f.hex.toLowerCase() === cfg.colors.fabric.toLowerCase()
   )
-  const fabName = fabPreset ? fabPreset.name : `Tessuto personalizzato (${cfg.colors.fabric})`
+  const fabName = fabPreset ? fabPreset.name : `Colore personalizzato (${cfg.colors.fabric})`
+  const weaveName = cfg.fabricWeave === 'ferrari' ? 'Serge Ferrari (Traspirante filtrante)' : 'Soltis 92 (Microforato oscurante)'
 
   const glassPreset = GLASS_PRESETS.find(
     (g) => g.hex.toLowerCase() === cfg.colors.glass.toLowerCase()
@@ -104,7 +105,7 @@ export async function generateSpecificationPdf(
   doc.setTextColor(51, 65, 85)
   doc.text(`• Finitura Struttura e Travi: ${structName}`, 16, y)
   y += 5
-  doc.text(`• Tessuto Chiusure Verticali: ${fabName}`, 16, y)
+  doc.text(`• Tessuto Chiusure Verticali: ${fabName} — Trama: ${weaveName}`, 16, y)
   y += 5
   doc.text(`• Vetrate Panoramiche: ${glassName}`, 16, y)
   y += 9

@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LIB_URL, NODE_NAMES } from './loader'
@@ -766,6 +766,28 @@ export function Pergola() {
   const { nodes } = useGLTF(LIB_URL)
   const cfg = useConfigSelector((s) => s)
 
+  // Architectural fabric textures: Soltis 92 (dense microperforated) and Serge Ferrari (breathable light mesh)
+  const textures = useTexture({
+    soltisDiff: '/textures/fabrics/soltis-92-diffuse.png',
+    soltisNorm: '/textures/fabrics/soltis-92-normal.png',
+    ferrariDiff: '/textures/fabrics/serge-ferrari-diffuse.png',
+    ferrariNorm: '/textures/fabrics/serge-ferrari-normal.png'
+  })
+
+  useMemo(() => {
+    const configTex = (tex: THREE.Texture, repX: number, repY: number, isColor: boolean) => {
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+      tex.repeat.set(repX, repY)
+      if (isColor) tex.colorSpace = THREE.SRGBColorSpace
+    }
+    // Soltis 92 micro-weave
+    configTex(textures.soltisDiff, 4, 4, true)
+    configTex(textures.soltisNorm, 4, 4, false)
+    // Serge Ferrari open mesh
+    configTex(textures.ferrariDiff, 5, 5, true)
+    configTex(textures.ferrariNorm, 5, 5, false)
+  }, [textures])
+
   // Dynamic PBR Materials for authentic architectural finishes
   const { structureMat, fabricMat, kristallMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
     const sMat = new THREE.MeshStandardMaterial({
@@ -776,10 +798,20 @@ export function Pergola() {
       side: THREE.DoubleSide
     })
 
+    const weave = cfg.fabricWeave || 'soltis'
+    const activeDiff = weave === 'ferrari' ? textures.ferrariDiff : textures.soltisDiff
+    const activeNorm = weave === 'ferrari' ? textures.ferrariNorm : textures.soltisNorm
+
+    // Fabric material — applied exclusively to the sun screen fabric (panel_shade_fabric / panel_thermal_fabric)
     const fMat = new THREE.MeshStandardMaterial({
       color: cfg.colors.fabric,
-      roughness: 0.65,
-      metalness: 0.05,
+      map: activeDiff,
+      normalMap: activeNorm,
+      normalScale: new THREE.Vector2(0.75, 0.75),
+      roughness: 0.85,
+      metalness: 0.04,
+      transparent: true,
+      alphaTest: 0.08, // Crisp micro-perforations with rock-solid depth sorting
       side: THREE.DoubleSide
     })
 

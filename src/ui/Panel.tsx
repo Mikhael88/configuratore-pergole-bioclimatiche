@@ -577,7 +577,23 @@ export function Panel({
 
               <div className="divider" />
 
-              <span className="label-caption">Tessuto Chiusure Verticali Zip:</span>
+              <span className="label-caption">Tipologia Trama Tessuto:</span>
+              <div className="pill-group" style={{ marginBottom: '14px' }}>
+                <button
+                  className={`pill-btn ${cfg.fabricWeave === 'soltis' || !cfg.fabricWeave ? 'active' : ''}`}
+                  onClick={() => set({ fabricWeave: 'soltis' })}
+                >
+                  🛡️ Soltis 92 (Oscurante)
+                </button>
+                <button
+                  className={`pill-btn ${cfg.fabricWeave === 'ferrari' ? 'active' : ''}`}
+                  onClick={() => set({ fabricWeave: 'ferrari' })}
+                >
+                  💨 Serge Ferrari (Traspirante)
+                </button>
+              </div>
+
+              <span className="label-caption">Colore Tessuto Tenda Zip:</span>
               <div className="swatches-grid-large">
                 {FABRIC_PRESETS.map((fb) => {
                   const isActive = cfg.colors.fabric.toLowerCase() === fb.hex.toLowerCase()
@@ -594,6 +610,22 @@ export function Panel({
                     </button>
                   )
                 })}
+              </div>
+
+              <div className="color-custom-row">
+                <span className="label-caption">Oppure inserisci colore tessuto personalizzato:</span>
+                <input
+                  type="color"
+                  value={cfg.colors.fabric}
+                  onChange={(e) =>
+                    set({
+                      colors: {
+                        ...cfg.colors,
+                        fabric: e.target.value
+                      }
+                    })
+                  }
+                />
               </div>
 
               <div className="divider" />

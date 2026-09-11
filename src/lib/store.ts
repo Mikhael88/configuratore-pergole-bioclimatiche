@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { useSyncExternalStore } from 'react'
-import { defaultConfig, PergolaConfig, CameraPreset } from './types'
+import { defaultConfig, PergolaConfig, CameraPreset, SIDE_KEYS } from './types'
 
 /**
  * Zustand store — ONE-WAY data flow:
@@ -10,22 +10,46 @@ import { defaultConfig, PergolaConfig, CameraPreset } from './types'
 
 function encodeConfigToHash(cfg: PergolaConfig): string {
   try {
-    const compact = {
-      w: cfg.width,
-      d: cfg.depth,
-      m: cfg.mounting,
-      fs: cfg.fixedSides,
-      la: cfg.louverAngle,
-      lp: cfg.louverPacked ? 1 : 0,
-      s: cfg.sides,
-      led: cfg.led ? 1 : 0,
-      ledB: cfg.ledBeam ? 1 : 0,
-      ledC: cfg.ledColumn ? 1 : 0,
-      lm: cfg.lightingMode,
-      sun: cfg.sun,
-      col: cfg.colors
+    const parts: string[] = []
+
+    if (cfg.width !== defaultConfig.width) parts.push(`w=${cfg.width}`)
+    if (cfg.depth !== defaultConfig.depth) parts.push(`d=${cfg.depth}`)
+    if (cfg.height !== defaultConfig.height) parts.push(`h=${cfg.height}`)
+    if (cfg.mounting !== defaultConfig.mounting) parts.push(`m=${cfg.mounting}`)
+    if (cfg.louverAngle !== defaultConfig.louverAngle) parts.push(`la=${Math.round(cfg.louverAngle)}`)
+    if (cfg.louverPacked) parts.push('lp=1')
+    if (cfg.ledBeam) parts.push('lb=1')
+    if (cfg.ledColumn) parts.push('lc=1')
+    if (cfg.lightingMode !== defaultConfig.lightingMode) parts.push(`lm=${cfg.lightingMode}`)
+    if (cfg.fabricWeave && cfg.fabricWeave !== 'soltis') parts.push(`fw=${cfg.fabricWeave}`)
+
+    // Colors
+    if (cfg.colors.structure !== defaultConfig.colors.structure) {
+      parts.push(`cs=${cfg.colors.structure.replace('#', '')}`)
     }
-    return '#' + encodeURIComponent(JSON.stringify(compact))
+    if (cfg.colors.fabric !== defaultConfig.colors.fabric) {
+      parts.push(`cf=${cfg.colors.fabric.replace('#', '')}`)
+    }
+    if (cfg.colors.glass !== defaultConfig.colors.glass) {
+      parts.push(`cg=${cfg.colors.glass.replace('#', '')}`)
+    }
+
+    // Sun
+    if (cfg.sun.azimuth !== defaultConfig.sun.azimuth || cfg.sun.elevation !== defaultConfig.sun.elevation) {
+      parts.push(`sun=${Math.round(cfg.sun.azimuth)},${Math.round(cfg.sun.elevation)}`)
+    }
+
+    // Sides
+    SIDE_KEYS.forEach((k) => {
+      const s = cfg.sides[k]
+      if (s.system !== 'none') {
+        const op1 = Math.round(s.opening * 100) / 100
+        const op2 = Math.round((s.openingExternal ?? s.opening) * 100) / 100
+        parts.push(`s${k}=${s.system}:${s.fabric}:${s.glassOpen}:${op1}:${op2}`)
+      }
+    })
+
+    return parts.join('&')
   } catch {
     return ''
   }
@@ -33,24 +57,96 @@ function encodeConfigToHash(cfg: PergolaConfig): string {
 
 function decodeConfigFromHash(): Partial<PergolaConfig> | null {
   try {
-    const hash = window.location.hash.slice(1)
-    if (!hash) return null
-    const raw = JSON.parse(decodeURIComponent(hash))
-    return {
-      ...(raw.w ? { width: raw.w } : {}),
-      ...(raw.d ? { depth: raw.d } : {}),
-      ...(raw.m ? { mounting: raw.m } : {}),
-      ...(raw.fs ? { fixedSides: raw.fs } : {}),
-      ...(raw.la !== undefined ? { louverAngle: raw.la } : {}),
-      ...(raw.lp !== undefined ? { louverPacked: !!raw.lp } : {}),
-      ...(raw.s ? { sides: raw.s } : {}),
-      ...(raw.led !== undefined ? { led: !!raw.led } : {}),
-      ...(raw.ledB !== undefined ? { ledBeam: !!raw.ledB } : {}),
-      ...(raw.ledC !== undefined ? { ledColumn: !!raw.ledC } : {}),
-      ...(raw.lm ? { lightingMode: raw.lm } : {}),
-      ...(raw.sun ? { sun: raw.sun } : {}),
-      ...(raw.col ? { colors: raw.col } : {})
+    const rawHash = window.location.hash.slice(1)
+    if (!rawHash) return null
+
+    // Legacy JSON format backwards-compatibility
+    if (rawHash.startsWith('{') || rawHash.startsWith('%7B') || rawHash.includes('%22')) {
+      const raw = JSON.parse(decodeURIComponent(rawHash))
+      return {
+        ...(raw.w ? { width: raw.w } : {}),
+        ...(raw.d ? { depth: raw.d } : {}),
+        ...(raw.m ? { mounting: raw.m } : {}),
+        ...(raw.fs ? { fixedSides: raw.fs } : {}),
+        ...(raw.la !== undefined ? { louverAngle: raw.la } : {}),
+        ...(raw.lp !== undefined ? { louverPacked: !!raw.lp } : {}),
+        ...(raw.s ? { sides: raw.s } : {}),
+        ...(raw.led !== undefined ? { led: !!raw.led } : {}),
+        ...(raw.ledB !== undefined ? { ledBeam: !!raw.ledB } : {}),
+        ...(raw.ledC !== undefined ? { ledColumn: !!raw.ledC } : {}),
+        ...(raw.lm ? { lightingMode: raw.lm } : {}),
+        ...(raw.sun ? { sun: raw.sun } : {}),
+        ...(raw.col ? { colors: raw.col } : {})
+      }
     }
+
+    // Compact Key-Value format
+    const params = new URLSearchParams(rawHash)
+    const patch: Partial<PergolaConfig> = {}
+
+    const w = params.get('w')
+    if (w) patch.width = parseFloat(w)
+    const d = params.get('d')
+    if (d) patch.depth = parseFloat(d)
+    const h = params.get('h')
+    if (h) patch.height = parseFloat(h)
+    const m = params.get('m')
+    if (m && ['free', 'wall1', 'wall2', 'wall_opposed'].includes(m)) patch.mounting = m as any
+    const la = params.get('la')
+    if (la) patch.louverAngle = parseFloat(la)
+    const lp = params.get('lp')
+    if (lp !== null) patch.louverPacked = lp === '1'
+    const lb = params.get('lb')
+    if (lb !== null) patch.ledBeam = lb === '1'
+    const lc = params.get('lc')
+    if (lc !== null) patch.ledColumn = lc === '1'
+    const lm = params.get('lm')
+    if (lm && ['studio', 'environment'].includes(lm)) patch.lightingMode = lm as any
+    const fw = params.get('fw')
+    if (fw && ['soltis', 'ferrari'].includes(fw)) patch.fabricWeave = fw as any
+
+    const cs = params.get('cs')
+    const cf = params.get('cf')
+    const cg = params.get('cg')
+    if (cs || cf || cg) {
+      patch.colors = {
+        ...defaultConfig.colors,
+        ...(cs ? { structure: '#' + cs } : {}),
+        ...(cf ? { fabric: '#' + cf } : {}),
+        ...(cg ? { glass: '#' + cg } : {})
+      }
+    }
+
+    const sunStr = params.get('sun')
+    if (sunStr) {
+      const [az, el] = sunStr.split(',').map(parseFloat)
+      if (!isNaN(az) && !isNaN(el)) {
+        patch.sun = { azimuth: az, elevation: el }
+      }
+    }
+
+    // Sides
+    const sidesPatch: Record<string, any> = {}
+    let hasSide = false
+    SIDE_KEYS.forEach((k) => {
+      const sVal = params.get(`s${k}`)
+      if (sVal) {
+        hasSide = true
+        const [sys, fab, gOpen, op1, op2] = sVal.split(':')
+        sidesPatch[k] = {
+          system: sys || 'none',
+          fabric: fab || 'shade',
+          glassOpen: gOpen || 'center',
+          opening: op1 !== undefined ? parseFloat(op1) : 0,
+          openingExternal: op2 !== undefined ? parseFloat(op2) : 0
+        }
+      }
+    })
+    if (hasSide) {
+      patch.sides = { ...defaultConfig.sides, ...sidesPatch }
+    }
+
+    return patch
   } catch {
     return null
   }
@@ -136,8 +232,10 @@ export const set = (patch: Partial<PergolaConfig>): void => {
     clearTimeout(hashDebounce)
     hashDebounce = window.setTimeout(() => {
       const h = encodeConfigToHash(next)
-      if (window.location.hash !== h) {
-        window.history.replaceState(null, '', h)
+      const newHash = h ? '#' + h : ''
+      if (window.location.hash !== newHash) {
+        const target = window.location.pathname + window.location.search + newHash
+        window.history.replaceState(null, '', target)
       }
     }, 400)
   }
@@ -160,7 +258,8 @@ export const setStep = (step: number): void => {
 export const reset = (): void => {
   useConfig.setState(defaultConfig)
   if (typeof window !== 'undefined') {
-    window.history.replaceState(null, '', window.location.pathname)
+    const target = window.location.pathname + window.location.search
+    window.history.replaceState(null, '', target)
   }
 }
 

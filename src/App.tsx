@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -92,18 +92,20 @@ export default function App() {
           gl={{
             preserveDrawingBuffer: true,
             antialias: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.05
+            toneMapping: THREE.AgXToneMapping,
+            toneMappingExposure: 1.15
           }}
           camera={{ position: [7, 4.8, 7], fov: 40, near: 0.1, far: 200 }}
           onCreated={({ gl, scene, camera }) => {
             threeRef.current = { gl, scene, camera: camera as THREE.PerspectiveCamera }
           }}
         >
-          <SceneEnv />
-          <Pergola />
-          <DimensionsOverlay />
-          <CameraController controlsRef={controlsRef} />
+          <Suspense fallback={null}>
+            <SceneEnv />
+            <Pergola />
+            <DimensionsOverlay />
+            <CameraController controlsRef={controlsRef} />
+          </Suspense>
           <OrbitControls
             ref={controlsRef}
             target={[0, 1, 0]}
