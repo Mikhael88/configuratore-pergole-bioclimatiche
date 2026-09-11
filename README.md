@@ -72,3 +72,4 @@ configurator/
 │   └── main.tsx             # Entry point React
 └── package.json
 ```
+"# configuratore-pergole-bioclimatiche" 
