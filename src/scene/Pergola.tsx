@@ -517,11 +517,13 @@ function ScreenSide({
   const extDropHeight = THREE.MathUtils.clamp(actualExtOpening * (height - 0.06), 0.02, height - 0.06)
   const extDropScale = extDropHeight / fabricDropY
 
-  // Metric proportional repeat: maintains 1:1 square tiles and constant physical density
-  // Serge Ferrari open mesh requires 5x tiling on U and V; Soltis 92 uses 1x base tiling.
+  // Metric proportional repeat based on curtain physical dimensions (screenSpan and intDropHeight):
+  // 1) Replicated at least 4x on width to start with (4x)
+  // 2) Plus an additional 4x tiling on both axes (U & V / width & height)
+  // Total width: 16x; Total height: 4x (with 5x ratio for Serge Ferrari)
   const baseTiling = weave === 'ferrari' ? 5.0 : 1.0
-  const repX = baseTiling * screenSpan
-  const repY = baseTiling * intDropHeight
+  const repX = baseTiling * 16.0 * screenSpan
+  const repY = baseTiling * 4.0 * intDropHeight
 
   const { fabricMat, diffTex, normTex } = useMemo(() => {
     const rawDiff = weave === 'ferrari' ? textures.ferrariDiff : textures.soltisDiff
@@ -891,10 +893,10 @@ export function Pergola() {
 
   // Architectural fabric textures: Soltis 92 (dense microperforated) and Serge Ferrari (breathable light mesh)
   const textures = useTexture({
-    soltisDiff: '/textures/fabrics/soltis-92-diffuse.png',
-    soltisNorm: '/textures/fabrics/soltis-92-normal.png',
-    ferrariDiff: '/textures/fabrics/serge-ferrari-diffuse.png',
-    ferrariNorm: '/textures/fabrics/serge-ferrari-normal.png'
+    soltisDiff: '/textures/fabrics/soltis-92-diffuse.webp',
+    soltisNorm: '/textures/fabrics/soltis-92-normal.webp',
+    ferrariDiff: '/textures/fabrics/serge-ferrari-diffuse.webp',
+    ferrariNorm: '/textures/fabrics/serge-ferrari-normal.webp'
   })
 
   useMemo(() => {
