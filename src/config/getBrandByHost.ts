@@ -4,11 +4,11 @@ import { BrandConfig, BRANDS, DEFAULT_BRAND } from './brands'
  * Resolves the active brand configuration based on current hostname or URL overrides.
  *
  * Resolution order:
- * 1. URL search parameter: `?brand=arquati` or `?brand=ke`
- * 2. URL hash parameter: `#brand=arquati` or `#brand=ke`
+ * 1. URL search parameter: `?brand=arquati` or `?brand=ke` / `?brand=keoutdoordesign`
+ * 2. URL hash parameter: `#brand=arquati` or `#brand=ke` / `#brand=keoutdoordesign`
  * 3. Exact hostname match (cleaned of port and 'www.')
  * 4. Staging / preview substring match (e.g., 'arquati-preview.vercel.app')
- * 5. Default fallback to DEFAULT_BRAND (`kedesignoutdoor.tredo.it`)
+ * 5. Default fallback to DEFAULT_BRAND (`keoutdoordesign.tredo.it`)
  */
 export function getBrandByHost(hostname?: string): BrandConfig {
   if (typeof window !== 'undefined') {
@@ -21,8 +21,13 @@ export function getBrandByHost(hostname?: string): BrandConfig {
         if (brandParam === 'arquati' || brandParam.includes('arquati')) {
           return BRANDS['arquati.tredo.it']
         }
-        if (brandParam === 'ke' || brandParam.includes('kedesign')) {
-          return BRANDS['kedesignoutdoor.tredo.it']
+        if (
+          brandParam === 'ke' ||
+          brandParam.includes('keoutdoor') ||
+          brandParam.includes('keoutdoordesign') ||
+          brandParam.includes('kedesign')
+        ) {
+          return BRANDS['keoutdoordesign.tredo.it']
         }
       }
 
@@ -30,7 +35,9 @@ export function getBrandByHost(hostname?: string): BrandConfig {
       if (window.location.hash) {
         const hash = window.location.hash.toLowerCase()
         if (hash.includes('brand=arquati')) return BRANDS['arquati.tredo.it']
-        if (hash.includes('brand=ke')) return BRANDS['kedesignoutdoor.tredo.it']
+        if (hash.includes('brand=ke') || hash.includes('brand=keoutdoor')) {
+          return BRANDS['keoutdoordesign.tredo.it']
+        }
       }
     } catch {
       // Ignore URL parsing errors if any
@@ -50,8 +57,13 @@ export function getBrandByHost(hostname?: string): BrandConfig {
   if (cleanHost.includes('arquati')) {
     return BRANDS['arquati.tredo.it']
   }
-  if (cleanHost.includes('kedesign') || cleanHost.includes('ke-outdoor')) {
-    return BRANDS['kedesignoutdoor.tredo.it']
+  if (
+    cleanHost.includes('keoutdoordesign') ||
+    cleanHost.includes('keoutdoor') ||
+    cleanHost.includes('kedesign') ||
+    cleanHost.includes('ke-outdoor')
+  ) {
+    return BRANDS['keoutdoordesign.tredo.it']
   }
 
   // 6. Default fallback
