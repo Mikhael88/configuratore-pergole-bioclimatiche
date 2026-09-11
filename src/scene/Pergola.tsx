@@ -21,6 +21,7 @@ interface PartProps {
   material?: THREE.Material
   castShadow?: boolean
   receiveShadow?: boolean
+  onChildMesh?: (mesh: THREE.Mesh) => void
   children?: React.ReactNode
 }
 
@@ -37,6 +38,7 @@ function Part({
   material,
   castShadow = true,
   receiveShadow = true,
+  onChildMesh,
   children
 }: PartProps) {
   const a = useMemo(() => {
@@ -68,10 +70,11 @@ function Part({
         if (material) {
           mesh.material = material
         }
+        onChildMesh?.(mesh)
       }
     })
     return c
-  }, [node, material, castShadow, receiveShadow])
+  }, [node, material, castShadow, receiveShadow, onChildMesh])
 
   return (
     <group position={position} rotation={rotation}>
@@ -157,8 +160,14 @@ function Columns({
     return null
   }
 
-  // Dynamic vertical scaling from CAD base height of 1.986m
-  const colScaleY = H / 1.9859
+  // Dynamic vertical scaling from CAD base height (computed directly from model)
+  const colHeightCAD = useMemo(() => {
+    if (!nodes.col_single) return 1.9100
+    const b = localBox(nodes.col_single)
+    return Math.max(0.5, b.max.y - b.min.y)
+  }, [nodes.col_single])
+
+  const colScaleY = H / colHeightCAD
 
   // Determine active columns and their mirror scales
   let corners: Array<{ sa: SideKey; sb: SideKey; x: number; z: number; sx: number; sz: number }> = []
@@ -261,6 +270,19 @@ function BeamsAndFrame({
   const beamXScale = (width + 0.08) / sliceX
   const beamZScale = (depth + 0.08) / sliceZ
 
+  // Configure native CAD LED strips parented inside beam profiles
+  const setupBeamMesh = useMemo(
+    () => (mesh: THREE.Mesh) => {
+      if (mesh.name.includes('led') || mesh.name.includes('LED')) {
+        mesh.material = ledMat
+        mesh.visible = ledBeam
+        mesh.castShadow = false
+        mesh.receiveShadow = false
+      }
+    },
+    [ledMat, ledBeam]
+  )
+
   return (
     <group>
       {/* Front (+z) Beam: Base orientation, inner gutter faces -z */}
@@ -270,6 +292,7 @@ function BeamsAndFrame({
         position={[0, H, depth / 2]}
         scale={[beamXScale, 1, 1]}
         material={structureMat}
+        onChildMesh={setupBeamMesh}
       />
 
       {/* Back (-z) Beam: Mirrored on Z (scale.z = -1) so inner gutter faces +z into pergola */}
@@ -279,6 +302,7 @@ function BeamsAndFrame({
         position={[0, H, -depth / 2]}
         scale={[beamXScale, 1, -1]}
         material={structureMat}
+        onChildMesh={setupBeamMesh}
       />
 
       {/* Left (-x) Beam: Base orientation, inner channel faces +x */}
@@ -288,6 +312,7 @@ function BeamsAndFrame({
         position={[-width / 2, H, 0]}
         scale={[1, 1, beamZScale]}
         material={structureMat}
+        onChildMesh={setupBeamMesh}
       />
 
       {/* Right (+x) Beam: Mirrored on X (scale.x = -1) so inner channel faces -x into pergola */}
@@ -297,6 +322,7 @@ function BeamsAndFrame({
         position={[width / 2, H, 0]}
         scale={[-1, 1, beamZScale]}
         material={structureMat}
+        onChildMesh={setupBeamMesh}
       />
 
       {/* Corner Junction Nodes on Column Heads (Mirrored for authentic corner geometry) */}
@@ -310,28 +336,6 @@ function BeamsAndFrame({
           material={structureMat}
         />
       ))}
-
-      {/* Native Beam LED Strips running along inner beam channels on all 4 perimeter beams */}
-      {ledBeam && (
-        <group position={[0, H + 0.005, 0]}>
-          {/* Front Beam LED */}
-          <mesh position={[0, 0, depth / 2 - 0.052]} material={ledMat}>
-            <boxGeometry args={[width - 0.18, 0.006, 0.012]} />
-          </mesh>
-          {/* Back Beam LED */}
-          <mesh position={[0, 0, -depth / 2 + 0.052]} material={ledMat}>
-            <boxGeometry args={[width - 0.18, 0.006, 0.012]} />
-          </mesh>
-          {/* Left Beam LED */}
-          <mesh position={[-width / 2 + 0.052, 0, 0]} material={ledMat}>
-            <boxGeometry args={[0.012, 0.006, depth - 0.18]} />
-          </mesh>
-          {/* Right Beam LED */}
-          <mesh position={[width / 2 - 0.052, 0, 0]} material={ledMat}>
-            <boxGeometry args={[0.012, 0.006, depth - 0.18]} />
-          </mesh>
-        </group>
-      )}
     </group>
   )
 }
@@ -489,10 +493,9 @@ function Sides({
   const fabricSliceX = Math.max(0.005, fabThermal.max.x - fabThermal.min.x)
   const fabricDropY = Math.max(0.01, fabThermal.max.y - fabThermal.min.y)
 
-  const glassSliceZ = useMemo(() => {
-    const b = localBox(nodes.glass_pane)
-    return Math.max(0.005, b.max.z - b.min.z)
-  }, [nodes.glass_pane])
+  const glassBox = useMemo(() => localBox(nodes.glass_pane), [nodes.glass_pane])
+  const glassSliceX = Math.max(0.005, glassBox.max.x - glassBox.min.x)
+  const glassPaneHeightCAD = Math.max(0.1, glassBox.max.y - glassBox.min.y)
 
   const trackNode = nodes.glass_track || nodes.fessura_porte
   const trackSliceX = useMemo(() => {
@@ -500,6 +503,22 @@ function Sides({
     const b = localBox(trackNode)
     return Math.max(0.005, b.max.x - b.min.x)
   }, [trackNode])
+
+  // Setup dual materials for split CAD glass leaf: glass_pane receives glassMat, child glass_frame receives structureMat
+  const setupGlassMesh = useMemo(
+    () => (mesh: THREE.Mesh) => {
+      if (mesh.name.includes('frame') || mesh.name.includes('alluminio')) {
+        mesh.material = structureMat
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+      } else {
+        mesh.material = glassMat
+        mesh.castShadow = false
+        mesh.receiveShadow = true
+      }
+    },
+    [structureMat, glassMat]
+  )
 
   const geoms: Record<SideKey, { along: 'x' | 'z'; center: [number, number, number]; normal: number }> = {
     F: { along: 'x', center: [0, 0, depth / 2], normal: 1 },
@@ -509,7 +528,6 @@ function Sides({
   }
 
   // Effective glass height from ground track channel (0.006) to under-beam guide channel (H - 0.006)
-  const glassPaneHeightCAD = 1.9746
   const glassYScale = (H - 0.012) / glassPaneHeightCAD
 
   return (
@@ -528,9 +546,8 @@ function Sides({
         const screenSpan = isX ? width - 0.13 : depth - 0.13
         const glassSpan = isX ? width - 0.24 : depth - 0.24
 
-        // Outward orientation for screens so local +Z is ALWAYS facing OUTWARDS:
-        const fabRotY = isX ? (k === 'F' ? 0 : Math.PI) : (k === 'R' ? Math.PI / 2 : -Math.PI / 2)
-        const glassRotY = isX ? Math.PI / 2 : 0
+        // Outward orientation so local +Z is ALWAYS facing OUTWARDS, and local +X spans the opening
+        const sideRotY = isX ? (k === 'F' ? 0 : Math.PI) : (k === 'R' ? -Math.PI / 2 : Math.PI / 2)
 
         // ================= SCREENS (1 or 2 Tende) =================
         if (sc.system === 'panel1' || sc.system === 'panel2') {
@@ -543,7 +560,7 @@ function Sides({
           const extDropScale = extDropHeight / fabricDropY
 
           return (
-            <group key={k} position={[g.center[0], H, g.center[2]]} rotation={[0, fabRotY, 0]}>
+            <group key={k} position={[g.center[0], H, g.center[2]]} rotation={[0, sideRotY, 0]}>
               {/* Single Screen: 1 shade fabric + movable bottom bar */}
               {!isPanel2 ? (
                 <group position={[0, -0.002, 0]}>
@@ -621,14 +638,14 @@ function Sides({
           const N = Math.max(2, Math.round((span / 2) / 0.8))
           const count = 2 * N
           const doorW = span / count
-          const zScale = doorW / glassSliceZ
+          const xScale = doorW / glassSliceX
 
           // The two central French door leaves that meet at center line:
           const leftDoorIdx = N - 1
           const rightDoorIdx = N
 
           return (
-            <group key={k} position={[g.center[0], 0, g.center[2]]} rotation={[0, glassRotY, 0]}>
+            <group key={k} position={[g.center[0], 0, g.center[2]]} rotation={[0, sideRotY, 0]}>
               {/* FIXED Floor Track resting on ground (NEVER moves when doors open) */}
               {trackNode && (
                 <Part
@@ -653,7 +670,7 @@ function Sides({
                 />
               )}
 
-              {/* Glass Panes */}
+              {/* Glass Panes with child aluminum perimeter frame */}
               {Array.from({ length: count }).map((_, i) => {
                 const normalOff = -span / 2 + doorW / 2 + i * doorW
 
@@ -663,35 +680,37 @@ function Sides({
                   const isRightDoor = i === rightDoorIdx
 
                   if (isLeftDoor) {
-                    // Left French door leaf: hinges at outer edge (-doorW / 2), swings outward left (-angle)
+                    // Left French door leaf: hinges at outer edge (-doorW / 2), swings outward
                     const openAngle = -sc.opening * (Math.PI * 0.52)
                     return (
-                      <group key={i} position={[0, 0, normalOff]}>
-                        <group position={[0, 0, -doorW / 2]} rotation={[0, g.normal * openAngle, 0]}>
+                      <group key={i} position={[normalOff, 0, 0]}>
+                        <group position={[-doorW / 2, 0, 0]} rotation={[0, openAngle, 0]}>
                           <Part
                             node={nodes.glass_pane}
                             anchor="bottomCenter"
-                            position={[0, 0.006, doorW / 2]}
-                            scale={[1, glassYScale, zScale]}
+                            position={[doorW / 2, 0.006, 0]}
+                            scale={[xScale, glassYScale, 1]}
                             material={glassMat}
                             castShadow={false}
+                            onChildMesh={setupGlassMesh}
                           />
                         </group>
                       </group>
                     )
                   } else if (isRightDoor) {
-                    // Right French door leaf: hinges at outer edge (+doorW / 2), swings outward right (+angle)
+                    // Right French door leaf: hinges at outer edge (+doorW / 2), swings outward
                     const openAngle = sc.opening * (Math.PI * 0.52)
                     return (
-                      <group key={i} position={[0, 0, normalOff]}>
-                        <group position={[0, 0, doorW / 2]} rotation={[0, g.normal * openAngle, 0]}>
+                      <group key={i} position={[normalOff, 0, 0]}>
+                        <group position={[doorW / 2, 0, 0]} rotation={[0, openAngle, 0]}>
                           <Part
                             node={nodes.glass_pane}
                             anchor="bottomCenter"
-                            position={[0, 0.006, -doorW / 2]}
-                            scale={[1, glassYScale, zScale]}
+                            position={[-doorW / 2, 0.006, 0]}
+                            scale={[xScale, glassYScale, 1]}
                             material={glassMat}
                             castShadow={false}
+                            onChildMesh={setupGlassMesh}
                           />
                         </group>
                       </group>
@@ -699,14 +718,15 @@ function Sides({
                   } else {
                     // Stationary outer panoramic glass panels
                     return (
-                      <group key={i} position={[0, 0, normalOff]}>
+                      <group key={i} position={[normalOff, 0, 0]}>
                         <Part
                           node={nodes.glass_pane}
                           anchor="bottomCenter"
                           position={[0, 0.006, 0]}
-                          scale={[1, glassYScale, zScale]}
+                          scale={[xScale, glassYScale, 1]}
                           material={glassMat}
                           castShadow={false}
+                          onChildMesh={setupGlassMesh}
                         />
                       </group>
                     )
@@ -718,14 +738,15 @@ function Sides({
                   const openAng = sc.opening * (Math.PI * 0.45)
 
                   return (
-                    <group key={i} position={[0, 0, currentOff]} rotation={[0, g.normal * openAng, 0]}>
+                    <group key={i} position={[currentOff, 0, 0]} rotation={[0, openAng, 0]}>
                       <Part
                         node={nodes.glass_pane}
                         anchor="bottomCenter"
                         position={[0, 0.006, 0]}
-                        scale={[1, glassYScale, zScale]}
+                        scale={[xScale, glassYScale, 1]}
                         material={glassMat}
                         castShadow={false}
+                        onChildMesh={setupGlassMesh}
                       />
                     </group>
                   )
@@ -762,17 +783,18 @@ export function Pergola() {
       side: THREE.DoubleSide
     })
 
-    // Transparent PVC Kristall for external weather screens
+    // Crystal-clear Transparent PVC Kristall for external weather screens (zero refractive distortion)
     const kMat = new THREE.MeshPhysicalMaterial({
-      color: '#f0f5fa',
-      transmission: 0.96,
-      opacity: 0.98,
+      color: '#f4f8fa',
+      transmission: 0.90,
+      opacity: 0.40,
       transparent: true,
-      roughness: 0.05,
-      ior: 1.49,
-      thickness: 0.004,
+      roughness: 0.01,
+      metalness: 0.0,
+      ior: 1.0, // Eliminate refractive ray distortion so background columns remain 100% straight and crisp
+      thickness: 0.0,
       clearcoat: 1.0,
-      clearcoatRoughness: 0.04,
+      clearcoatRoughness: 0.02,
       side: THREE.DoubleSide,
       depthWrite: false
     })
