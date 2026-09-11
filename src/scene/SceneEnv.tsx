@@ -10,7 +10,7 @@
 import { useConfigSelector } from '../lib/store'
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import * as THREE from 'three'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 const SUN_RADIUS = 28
 
@@ -25,7 +25,15 @@ function sunVector(azimuthDeg: number, elevationDeg: number): THREE.Vector3 {
 export function SceneEnv() {
   const sun = useConfigSelector((s) => s.sun)
   const lightingMode = useConfigSelector((s) => s.lightingMode)
-  const led = useConfigSelector((s) => s.led)
+
+  const [hasHdr, setHasHdr] = useState(false)
+
+  // Check if custom environment HDRI texture is present in public/textures/
+  useEffect(() => {
+    fetch('/textures/environment.hdr', { method: 'HEAD' })
+      .then((r) => setHasHdr(r.ok))
+      .catch(() => setHasHdr(false))
+  }, [])
 
   const dir = useMemo(() => sunVector(sun.azimuth, sun.elevation), [sun.azimuth, sun.elevation])
   const sunPos = useMemo(() => dir.clone().multiplyScalar(SUN_RADIUS), [dir])
@@ -65,6 +73,10 @@ export function SceneEnv() {
     }
   }, [sun.elevation])
 
+  const isStudio = lightingMode === 'studio'
+  const finalAmbientIntensity = isStudio ? ambientIntensity * 1.5 : ambientIntensity
+  const finalSunIntensity = isStudio ? sunIntensity * 1.35 : sunIntensity
+
   const groundColor = useMemo(() => {
     if (sun.elevation <= 15) return '#1e242d'
     if (lightingMode === 'studio') return '#dcdfe3'
@@ -78,47 +90,54 @@ export function SceneEnv() {
       <fog attach="fog" args={[groundColor, 12, 36]} />
 
       {/* --- Environment Dome & Lighting --- */}
-      {lightingMode === 'studio' ? (
-        <Environment resolution={256} environmentIntensity={skyIntensity * 0.65}>
+      {isStudio ? (
+        /* Studio Mode — Boosted +50% for crisp, luminous commercial look */
+        <Environment resolution={256} environmentIntensity={skyIntensity * 1.0}>
           <Lightformer
             form="rect"
-            scale={15}
-            intensity={skyIntensity * 0.7}
+            scale={16}
+            intensity={skyIntensity * 1.05}
             color="#bfd6ff"
             position={[0, 25, -25]}
             rotation={[1.1, 0, Math.PI]}
           />
           <Lightformer
             form="rect"
-            scale={20}
-            intensity={skyIntensity * 0.45}
+            scale={22}
+            intensity={skyIntensity * 0.70}
             color="#ffffff"
             position={[-25, 15, 0]}
             rotation={[0, -Math.PI / 2, 0]}
           />
           <Lightformer
             form="rect"
-            scale={20}
-            intensity={skyIntensity * 0.45}
+            scale={22}
+            intensity={skyIntensity * 0.70}
             color="#ffffff"
             position={[25, 15, 0]}
             rotation={[0, Math.PI / 2, 0]}
           />
         </Environment>
+      ) : hasHdr ? (
+        /* Outdoor Sky Mode — Custom User HDRI Texture */
+        <Environment
+          files="/textures/environment.hdr"
+          environmentIntensity={skyIntensity * 1.2}
+        />
       ) : (
-        /* Outdoor Sky Environment */
-        <Environment resolution={512} environmentIntensity={skyIntensity * 1.1}>
+        /* Outdoor Sky Mode — Fallback Procedural Sky Dome */
+        <Environment resolution={512} environmentIntensity={skyIntensity * 1.15}>
           <Lightformer
             form="circle"
             scale={18}
-            intensity={skyIntensity * 1.2}
+            intensity={skyIntensity * 1.25}
             color={sunColor}
             position={[sunPos.x * 0.5, sunPos.y * 0.5, sunPos.z * 0.5]}
           />
           <Lightformer
             form="rect"
             scale={40}
-            intensity={skyIntensity * 0.6}
+            intensity={skyIntensity * 0.65}
             color="#88b5ea"
             position={[0, 30, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
@@ -126,7 +145,7 @@ export function SceneEnv() {
           <Lightformer
             form="rect"
             scale={40}
-            intensity={skyIntensity * 0.3}
+            intensity={skyIntensity * 0.35}
             color="#7a9668"
             position={[0, -10, 0]}
             rotation={[Math.PI / 2, 0, 0]}
@@ -135,12 +154,12 @@ export function SceneEnv() {
       )}
 
       {/* --- Ambient Lighting --- */}
-      <ambientLight intensity={ambientIntensity} color={ambientColor} />
+      <ambientLight intensity={finalAmbientIntensity} color={ambientColor} />
 
       {/* --- Directional Sun with Live Shadows --- */}
       <directionalLight
         position={[sunPos.x, sunPos.y, sunPos.z]}
-        intensity={sunIntensity}
+        intensity={finalSunIntensity}
         color={sunColor}
         castShadow
         shadow-mapSize-width={2048}
@@ -154,11 +173,6 @@ export function SceneEnv() {
         shadow-bias={-0.0003}
         shadow-normalBias={0.02}
       />
-
-      {/* Subtle night fill when LED is active */}
-      {led && (
-        <pointLight position={[0, 2.3, 0]} intensity={1.8} distance={7} decay={2} color="#ffdfa0" />
-      )}
 
       {/* --- Contact Shadows for Column Feet & Structure Grounding --- */}
       <ContactShadows

@@ -245,9 +245,23 @@ export function Panel({
                 </div>
               </div>
 
-              <div className="info-box">
-                <span className="info-icon">ℹ️</span>
-                <span>Altezza standard sottotrave: <b>{cfg.height.toFixed(2)} m</b> (luce utile di passaggio)</span>
+              <div className="slider-row" style={{ marginTop: '0.8rem' }}>
+                <div className="row-meta">
+                  <span className="row-name">Altezza Sottotrave (H)</span>
+                  <span className="row-val">{cfg.height.toFixed(2)} m</span>
+                </div>
+                <input
+                  type="range"
+                  min={2.0}
+                  max={3.2}
+                  step={0.05}
+                  value={cfg.height}
+                  onChange={(e) => set({ height: parseFloat(e.target.value) })}
+                />
+                <div className="slider-limits">
+                  <span>2.0 m</span>
+                  <span>3.2 m</span>
+                </div>
               </div>
             </div>
 

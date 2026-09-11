@@ -116,7 +116,7 @@ export const defaultSide = (): SideConfig => ({
 export const defaultConfig: PergolaConfig = {
   width: 4.0,
   depth: 4.0,
-  height: 1.986,
+  height: 2.40,
   mounting: 'free',
   fixedSides: { L: false, R: false, F: false, B: false },
   louverAngle: 45,

@@ -13,6 +13,7 @@ export function WallMounting() {
   const mounting = useConfigSelector((s) => s.mounting)
   const width = useConfigSelector((s) => s.width)
   const depth = useConfigSelector((s) => s.depth)
+  const H = useConfigSelector((s) => s.height)
 
   const wallMat = useMemo(() => {
     return new THREE.MeshStandardMaterial({
@@ -33,7 +34,7 @@ export function WallMounting() {
 
   if (mounting === 'free') return null
 
-  const wallHeight = 3.5
+  const wallHeight = Math.max(3.5, H + 1.1)
   const wallThickness = 0.32
   const extraMargin = 1.2
 

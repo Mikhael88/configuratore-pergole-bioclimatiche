@@ -111,6 +111,7 @@ function Columns({
 }) {
   const width = useConfigSelector((s) => s.width)
   const depth = useConfigSelector((s) => s.depth)
+  const H = useConfigSelector((s) => s.height)
   const mounting = useConfigSelector((s) => s.mounting)
   const sides = useConfigSelector((s) => s.sides)
   const ledColumn = useConfigSelector((s) => s.ledColumn)
@@ -118,6 +119,9 @@ function Columns({
   if (mounting === 'wall2') {
     return null
   }
+
+  // Dynamic vertical scaling from CAD base height of 1.986m
+  const colScaleY = H / 1.9859
 
   // Determine active columns and their mirror scales
   const corners: Array<{ sa: SideKey; sb: SideKey; x: number; z: number; sx: number; sz: number }> = [
@@ -141,20 +145,20 @@ function Columns({
         const col = colFor(sa, sb)
         return (
           <group key={`${sa}${sb}`} position={[x, 0, z]}>
-            {/* Main Column Body */}
+            {/* Main Column Body — dynamically stretched to height H */}
             <Part
               node={col}
               anchor="baseCenter"
-              scale={[sx, 1, sz]}
+              scale={[sx, colScaleY, sz]}
               material={mat}
             />
 
-            {/* Native External Column LED Bar */}
+            {/* Native External Column LED Strip (dual vertical channel strips) */}
             {ledColumn && nodes.col_led && (
               <Part
                 node={nodes.col_led}
                 anchor="baseCenter"
-                scale={[sx, 1, sz]}
+                scale={[sx, colScaleY, sz]}
                 material={ledMat}
                 castShadow={false}
               />
@@ -213,6 +217,10 @@ function BeamsAndFrame({
     return Math.max(0.005, b.max.x - b.min.x)
   }, [ledNode])
 
+  // Beams extended slightly into corner nodes (+0.08m) to eliminate the corner square notch
+  const beamXScale = (width + 0.08) / sliceX
+  const beamZScale = (depth + 0.08) / sliceZ
+
   return (
     <group>
       {/* Front (+z) Beam: Base orientation, inner gutter faces -z */}
@@ -220,7 +228,7 @@ function BeamsAndFrame({
         node={nodes.beam_x}
         anchor="bottomCenter"
         position={[0, H, depth / 2]}
-        scale={[width / sliceX, 1, 1]}
+        scale={[beamXScale, 1, 1]}
         material={structureMat}
       />
 
@@ -229,7 +237,7 @@ function BeamsAndFrame({
         node={nodes.beam_x}
         anchor="bottomCenter"
         position={[0, H, -depth / 2]}
-        scale={[width / sliceX, 1, -1]}
+        scale={[beamXScale, 1, -1]}
         material={structureMat}
       />
 
@@ -238,7 +246,7 @@ function BeamsAndFrame({
         node={nodes.beam_z}
         anchor="bottomCenter"
         position={[-width / 2, H, 0]}
-        scale={[1, 1, depth / sliceZ]}
+        scale={[1, 1, beamZScale]}
         material={structureMat}
       />
 
@@ -247,7 +255,7 @@ function BeamsAndFrame({
         node={nodes.beam_z}
         anchor="bottomCenter"
         position={[width / 2, H, 0]}
-        scale={[-1, 1, depth / sliceZ]}
+        scale={[-1, 1, beamZScale]}
         material={structureMat}
       />
 
@@ -263,7 +271,7 @@ function BeamsAndFrame({
         />
       ))}
 
-      {/* Native Beam LED Strips running in beam slot */}
+      {/* Native Beam LED Strips running along inner beam channels */}
       {ledBeam && ledNode && (
         <group position={[0, H + 0.014, 0]}>
           {/* Front Beam LED */}
@@ -271,7 +279,7 @@ function BeamsAndFrame({
             node={ledNode}
             anchor="center"
             position={[0, 0, depth / 2 - 0.045]}
-            scale={[width / ledSliceX, 1, 1]}
+            scale={[(width - 0.20) / ledSliceX, 1, 1]}
             material={ledMat}
             castShadow={false}
           />
@@ -280,7 +288,7 @@ function BeamsAndFrame({
             node={ledNode}
             anchor="center"
             position={[0, 0, -depth / 2 + 0.045]}
-            scale={[width / ledSliceX, 1, -1]}
+            scale={[(width - 0.20) / ledSliceX, 1, -1]}
             material={ledMat}
             castShadow={false}
           />
@@ -290,7 +298,7 @@ function BeamsAndFrame({
             anchor="center"
             position={[-width / 2 + 0.045, 0, 0]}
             rotation={[0, Math.PI / 2, 0]}
-            scale={[depth / ledSliceX, 1, 1]}
+            scale={[(depth - 0.20) / ledSliceX, 1, 1]}
             material={ledMat}
             castShadow={false}
           />
@@ -300,7 +308,7 @@ function BeamsAndFrame({
             anchor="center"
             position={[width / 2 - 0.045, 0, 0]}
             rotation={[0, -Math.PI / 2, 0]}
-            scale={[depth / ledSliceX, 1, 1]}
+            scale={[(depth - 0.20) / ledSliceX, 1, 1]}
             material={ledMat}
             castShadow={false}
           />
@@ -334,14 +342,19 @@ function Louvers({
   const box = useMemo(() => localBox(nodes.slat), [nodes.slat])
   const slice = Math.max(0.005, box.max.x - box.min.x)
 
+  const hingeBox = useMemo(() => localBox(nodes.slat_hinge_fixed), [nodes.slat_hinge_fixed])
+  const pernoW = Math.max(0.01, hingeBox.max.x - hingeBox.min.x) // ~0.0455m
+
   // Watertight pitch: blade depth is 0.1256m, pitch <= 0.122m guarantees full watertight overlap at 0°
   const K = clamp(Math.round(depth / 0.12), 6, 60)
   const pitch = depth / K
 
-  // Span between internal beam inner ledges
-  const louverWidth = Math.max(0.5, width - 0.24)
+  // Total span reaching into side beam hinge channels
+  const totalLouverSpan = Math.max(0.5, width - 0.15)
+  // Louver blade width spans completely between the two hinge pins with NO gaps
+  const slatWidth = Math.max(0.4, totalLouverSpan - 2 * pernoW)
 
-  // Louver elevation: center of rotation encased in perimeter beam at 2.131m
+  // Louver elevation: center of rotation encased in perimeter beam
   const louverY = H + 0.145
 
   // Animation lerp state — DAMPING FACTOR HALVED (from 5 to 2.2) for stately half-speed animation
@@ -392,26 +405,26 @@ function Louvers({
               node={nodes.slat}
               anchor="center"
               position={[0, 0, 0]}
-              scale={[louverWidth / slice, 1, 1]}
+              scale={[slatWidth / slice, 1, 1]}
               material={mat}
               castShadow={true}
             />
 
-            {/* Left Fulcrum Cylinder resting flush on left end */}
+            {/* Left Fulcrum Cylinder resting flush externally against the left blade end (no penetration) */}
             <Part
               node={nodes.slat_hinge_fixed}
               anchor="center"
-              position={[-louverWidth / 2, 0, 0]}
+              position={[-slatWidth / 2 - pernoW / 2, 0, 0]}
               scale={[1, 1, 1]}
               material={mat}
               castShadow={true}
             />
 
-            {/* Right Fulcrum Cylinder resting flush on right end (mirrored) */}
+            {/* Right Fulcrum Cylinder resting flush externally against the right blade end (mirrored) */}
             <Part
               node={nodes.slat_hinge_fixed}
               anchor="center"
-              position={[louverWidth / 2, 0, 0]}
+              position={[slatWidth / 2 + pernoW / 2, 0, 0]}
               scale={[-1, 1, 1]}
               material={mat}
               castShadow={true}
@@ -490,7 +503,9 @@ function Sides({
         if (sc.system === 'none') return null
         const g = geoms[k]
         const isX = g.along === 'x'
-        const span = isX ? width - 0.24 : depth - 0.24
+        // Screen fabric and bottom bar extend into the vertical column grooves (fessure)
+        const screenSpan = isX ? width - 0.13 : depth - 0.13
+        const glassSpan = isX ? width - 0.24 : depth - 0.24
 
         const fabRotY = isX ? 0 : Math.PI / 2
         const glassRotY = isX ? Math.PI / 2 : 0
@@ -504,62 +519,66 @@ function Sides({
 
           return (
             <group key={k} position={[g.center[0], H, g.center[2]]} rotation={[0, fabRotY, 0]}>
-              {/* Single Screen: 1 cassette + fabric */}
+              {/* Single Screen: 1 fabric + movable bottom bar */}
               {!isPanel2 ? (
                 <group position={[0, -0.002, 0]}>
-                  <Part
-                    node={sc.fabric === 'shade' ? nodes.panel_shade_housing : nodes.panel_thermal_housing}
-                    anchor="topCenter"
-                    scale={[span / fabricSliceX, 1, 1]}
-                    material={structureMat}
-                  />
+                  {/* Fabric unrolls from top down to dropHeight */}
                   <Part
                     node={sc.fabric === 'shade' ? nodes.panel_shade_fabric : nodes.panel_thermal_fabric}
                     anchor="topCenter"
-                    scale={[span / fabricSliceX, dropScale, 1]}
+                    scale={[screenSpan / fabricSliceX, dropScale, 1]}
                     material={fabricMat}
                     castShadow={true}
                   />
+                  {/* Bottom closure bar with silicone seal facing DOWN, glides down with fabric */}
+                  <Part
+                    node={sc.fabric === 'shade' ? nodes.panel_shade_housing : nodes.panel_thermal_housing}
+                    anchor="topCenter"
+                    position={[0, -dropHeight, 0]}
+                    rotation={[Math.PI, 0, 0]}
+                    scale={[screenSpan / fabricSliceX, 1, 1]}
+                    material={structureMat}
+                  />
                 </group>
               ) : (
-                /* Dual Screen (2 Tende Estate/Inverno): 2 tandem cassettes under the beam */
+                /* Dual Screen (2 Tende Estate/Inverno): 2 tandem rollers side by side, BOTH fabrics active */
                 <group position={[0, -0.002, 0]}>
-                  {/* Cassette 1: Outdoor Sun Shade (Estate) */}
-                  <group position={[0, 0, 0.03]}>
+                  {/* Track 1: Outdoor Sun Shade (Estate) */}
+                  <group position={[0, 0, 0.035]}>
+                    <Part
+                      node={nodes.panel_shade_fabric}
+                      anchor="topCenter"
+                      scale={[screenSpan / fabricSliceX, dropScale, 1]}
+                      material={fabricMat}
+                      castShadow={true}
+                    />
                     <Part
                       node={nodes.panel_shade_housing}
                       anchor="topCenter"
-                      scale={[span / fabricSliceX, 1, 1]}
+                      position={[0, -dropHeight, 0]}
+                      rotation={[Math.PI, 0, 0]}
+                      scale={[screenSpan / fabricSliceX, 1, 1]}
                       material={structureMat}
                     />
-                    {sc.fabric === 'shade' && (
-                      <Part
-                        node={nodes.panel_shade_fabric}
-                        anchor="topCenter"
-                        scale={[span / fabricSliceX, dropScale, 1]}
-                        material={fabricMat}
-                        castShadow={true}
-                      />
-                    )}
                   </group>
 
-                  {/* Cassette 2: Indoor Thermal Wind Screen (Inverno) */}
-                  <group position={[0, 0, -0.03]}>
+                  {/* Track 2: Indoor Thermal Wind Screen (Inverno) */}
+                  <group position={[0, 0, -0.035]}>
+                    <Part
+                      node={nodes.panel_thermal_fabric}
+                      anchor="topCenter"
+                      scale={[screenSpan / fabricSliceX, dropScale, 1]}
+                      material={fabricMat}
+                      castShadow={true}
+                    />
                     <Part
                       node={nodes.panel_thermal_housing}
                       anchor="topCenter"
-                      scale={[span / fabricSliceX, 1, 1]}
+                      position={[0, -dropHeight, 0]}
+                      rotation={[Math.PI, 0, 0]}
+                      scale={[screenSpan / fabricSliceX, 1, 1]}
                       material={structureMat}
                     />
-                    {sc.fabric === 'thermal' && (
-                      <Part
-                        node={nodes.panel_thermal_fabric}
-                        anchor="topCenter"
-                        scale={[span / fabricSliceX, dropScale, 1]}
-                        material={fabricMat}
-                        castShadow={true}
-                      />
-                    )}
                   </group>
                 </group>
               )}
@@ -569,6 +588,7 @@ function Sides({
 
         // ================= PANORAMIC GLASS SYSTEM =================
         if (sc.system === 'glass') {
+          const span = glassSpan
           // ALWAYS AN EVEN NUMBER OF PANES: 2N (e.g. 4, 6, 8...)
           const N = Math.max(2, Math.round((span / 2) / 0.8))
           const count = 2 * N
@@ -698,7 +718,7 @@ export function Pergola() {
   const cfg = useConfigSelector((s) => s)
 
   // Dynamic PBR Materials for authentic architectural finishes
-  const { structureMat, fabricMat, glassMat, ledMat } = useMemo(() => {
+  const { structureMat, fabricMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
     const sMat = new THREE.MeshStandardMaterial({
       color: cfg.colors.structure,
       roughness: cfg.colors.structureRoughness,
@@ -726,23 +746,38 @@ export function Pergola() {
       depthWrite: false
     })
 
-    const isLedOn = cfg.ledBeam || cfg.ledColumn || cfg.led
-    const lMat = new THREE.MeshStandardMaterial({
+    const bLedOn = cfg.ledBeam
+    const bLedMat = new THREE.MeshStandardMaterial({
       color: '#ffffff',
-      emissive: isLedOn ? new THREE.Color('#ffe0a0') : new THREE.Color('#111111'),
-      emissiveIntensity: isLedOn ? 3.5 : 0.0,
+      emissive: bLedOn ? new THREE.Color('#ffe0a0') : new THREE.Color('#111111'),
+      emissiveIntensity: bLedOn ? 3.5 : 0.0,
       roughness: 0.3,
       side: THREE.DoubleSide
     })
 
-    return { structureMat: sMat, fabricMat: fMat, glassMat: gMat, ledMat: lMat }
-  }, [cfg.colors, cfg.led, cfg.ledBeam, cfg.ledColumn])
+    const cLedOn = cfg.ledColumn
+    const cLedMat = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      emissive: cLedOn ? new THREE.Color('#ffe0a0') : new THREE.Color('#111111'),
+      emissiveIntensity: cLedOn ? 3.5 : 0.0,
+      roughness: 0.3,
+      side: THREE.DoubleSide
+    })
+
+    return {
+      structureMat: sMat,
+      fabricMat: fMat,
+      glassMat: gMat,
+      ledBeamMat: bLedMat,
+      ledColumnMat: cLedMat
+    }
+  }, [cfg.colors, cfg.ledBeam, cfg.ledColumn])
 
   return (
     <group>
       <WallMounting />
-      <Columns nodes={nodes} mat={structureMat} ledMat={ledMat} />
-      <BeamsAndFrame nodes={nodes} structureMat={structureMat} ledMat={ledMat} />
+      <Columns nodes={nodes} mat={structureMat} ledMat={ledColumnMat} />
+      <BeamsAndFrame nodes={nodes} structureMat={structureMat} ledMat={ledBeamMat} />
       <Louvers nodes={nodes} mat={structureMat} />
       <Sides nodes={nodes} structureMat={structureMat} fabricMat={fabricMat} glassMat={glassMat} />
     </group>
