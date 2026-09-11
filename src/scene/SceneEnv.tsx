@@ -110,32 +110,11 @@ export function SceneEnv() {
           />
         </Environment>
       ) : (
-        /* Outdoor Sky Mode — Dynamic Sun-Tracked Procedural Sky Dome */
-        <Environment resolution={512} environmentIntensity={skyIntensity * 1.15}>
-          <Lightformer
-            form="circle"
-            scale={18}
-            intensity={skyIntensity * 1.25}
-            color={sunColor}
-            position={[sunPos.x * 0.5, sunPos.y * 0.5, sunPos.z * 0.5]}
-          />
-          <Lightformer
-            form="rect"
-            scale={40}
-            intensity={skyIntensity * 0.65}
-            color="#88b5ea"
-            position={[0, 30, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-          />
-          <Lightformer
-            form="rect"
-            scale={40}
-            intensity={skyIntensity * 0.35}
-            color="#7a9668"
-            position={[0, -10, 0]}
-            rotation={[Math.PI / 2, 0, 0]}
-          />
-        </Environment>
+        /* Outdoor Environment Mode — Cannon HDR IBL & Reflections */
+        <Environment
+          files="/textures/cannon.hdr"
+          environmentIntensity={skyIntensity * 1.25}
+        />
       )}
 
       {/* --- Ambient Lighting --- */}

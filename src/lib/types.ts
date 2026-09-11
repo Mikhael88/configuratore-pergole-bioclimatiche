@@ -96,9 +96,9 @@ export const FABRIC_PRESETS: FabricPreset[] = [
 ]
 
 export const GLASS_PRESETS: GlassPreset[] = [
-  { id: 'chiaro', name: 'Cristallo Chiaro', hex: '#c8e2ec', transmission: 0.95, opacity: 0.3 },
-  { id: 'extracharo', name: 'Extra-Chiaro Diamante', hex: '#e6f4f7', transmission: 0.98, opacity: 0.18 },
-  { id: 'fume', name: 'Fumé Bronzo Satinato', hex: '#584f47', transmission: 0.72, opacity: 0.65 }
+  { id: 'chiaro', name: 'Cristallo Chiaro', hex: '#e6e6e6', transmission: 1.0, opacity: 0.95 },
+  { id: 'extracharo', name: 'Extra-Chiaro Diamante', hex: '#f2f2f2', transmission: 1.0, opacity: 0.92 },
+  { id: 'fume', name: 'Fumé Bronzo Satinato', hex: '#584f47', transmission: 0.75, opacity: 0.95 }
 ]
 
 export const SIDE_KEYS: SideKey[] = ['L', 'R', 'F', 'B']

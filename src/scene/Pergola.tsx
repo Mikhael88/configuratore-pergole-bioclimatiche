@@ -937,13 +937,14 @@ export function Pergola() {
     })
 
     const gMat = new THREE.MeshPhysicalMaterial({
-      color: cfg.colors.glass,
-      transmission: cfg.colors.glassTransmission,
-      opacity: cfg.colors.glassOpacity,
+      color: cfg.colors.glass || '#e6e6e6',
+      transmission: cfg.colors.glassTransmission ?? 1.0,
+      opacity: cfg.colors.glassOpacity ?? 0.95,
       transparent: true,
-      roughness: 0.04,
-      ior: 1.52,
-      thickness: 0.02,
+      roughness: 0,
+      reflectivity: 1.0,
+      ior: 1.43,
+      thickness: 0.05,
       side: THREE.DoubleSide,
       depthWrite: false
     })
