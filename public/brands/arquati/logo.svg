@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 70" width="100%" height="100%">
+  <defs>
+    <linearGradient id="arqGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="arqAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Iconic Roof Arch / Chevron Mark -->
+  <path d="M 16 46 L 27 20 L 38 46 L 32 46 L 27 31 L 22 46 Z" fill="url(#arqAccent)" />
+  
+  <!-- "ARQUATI" Primary Wordmark -->
+  <text x="48" y="47" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="900" letter-spacing="4.5" fill="url(#arqGrad)">ARQUATI</text>
+  
+  <!-- Architectural Tagline -->
+  <text x="50" y="58" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="7.5" font-weight="700" letter-spacing="3.2" fill="#64748b">OUTDOOR LIVING</text>
+</svg>

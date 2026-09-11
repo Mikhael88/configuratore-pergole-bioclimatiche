@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -9,16 +9,40 @@ import { DimensionsOverlay } from './scene/DimensionsOverlay'
 import { CameraController } from './scene/CameraController'
 import { Panel } from './ui/Panel'
 import { CameraDock } from './ui/CameraDock'
+import { BrandLogo } from './ui/BrandLogo'
 import { CapturedViews } from './lib/pdfExport'
 import { getConfig } from './lib/store'
+import { getBrandByHost } from './config/getBrandByHost'
 
 export default function App() {
+  const brand = getBrandByHost()
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const threeRef = useRef<{
     gl: THREE.WebGLRenderer
     scene: THREE.Scene
     camera: THREE.PerspectiveCamera
   } | null>(null)
+
+  // Dynamically configure page title, description meta, and brand favicon
+  useEffect(() => {
+    document.title = brand.title
+
+    let metaDesc = document.querySelector('meta[name="description"]')
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta')
+      metaDesc.setAttribute('name', 'description')
+      document.head.appendChild(metaDesc)
+    }
+    metaDesc.setAttribute('content', brand.description)
+
+    let iconLink = document.querySelector<HTMLLinkElement>('link[rel~="icon"]')
+    if (!iconLink) {
+      iconLink = document.createElement('link')
+      iconLink.rel = 'icon'
+      document.head.appendChild(iconLink)
+    }
+    iconLink.href = brand.favicon
+  }, [brand])
 
   // Capture clean multi-angle snapshots for PDF export
   const captureViews = async (): Promise<CapturedViews> => {
@@ -57,6 +81,9 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Dynamic Brand Logo badge in top-left */}
+      <BrandLogo brand={brand} />
+
       {/* 3D Viewport Workspace */}
       <div className="canvas-wrapper">
         <Canvas

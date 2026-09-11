@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf'
 import { PergolaConfig, SIDE_KEYS, SIDE_LABEL, STRUCTURE_FINISHES, FABRIC_PRESETS, GLASS_PRESETS } from './types'
+import { BrandConfig } from '../config/brands'
+import { getBrandByHost } from '../config/getBrandByHost'
 
 export interface CapturedViews {
   front: string
@@ -9,8 +11,11 @@ export interface CapturedViews {
 
 export async function generateSpecificationPdf(
   cfg: PergolaConfig,
-  views?: CapturedViews
+  views?: CapturedViews,
+  brandConfig?: BrandConfig
 ): Promise<void> {
+  const brand = brandConfig || getBrandByHost()
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -27,13 +32,13 @@ export async function generateSpecificationPdf(
   // Title
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(16)
-  doc.text('SCHEDA TECNICA DI CONFIGURAZIONE', 14, 12)
+  doc.setFontSize(15)
+  doc.text(`SCHEDA TECNICA — ${brand.brandName.toUpperCase()}`, 14, 12)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(203, 213, 225)
-  doc.text('Configuratore 3D Pergola Bioclimatica — Documento di Riepilogo', 14, 18)
+  doc.text(`Configuratore 3D Pergola Bioclimatica | ${brand.domain}`, 14, 18)
 
   const dateStr = new Date().toLocaleDateString('it-IT', {
     day: '2-digit',
@@ -205,5 +210,5 @@ export async function generateSpecificationPdf(
     { align: 'center' }
   )
 
-  doc.save(`Scheda_Tecnica_Pergola_${Date.now()}.pdf`)
+  doc.save(`Scheda_Tecnica_${brand.brandName.replace(/\s+/g, '_')}_${Date.now()}.pdf`)
 }
