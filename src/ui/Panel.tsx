@@ -28,15 +28,16 @@ const STEPS = [
 
 const SYSTEM_OPTIONS: Array<{ id: SideSystem; label: string; desc: string }> = [
   { id: 'none', label: 'Libero', desc: 'Apertura completa senza chiusure' },
-  { id: 'panel1', label: '1 Tenda', desc: 'Tenda a caduta singola motorizzata zip' },
-  { id: 'panel2', label: '2 Tende (Estate/Inverno)', desc: 'Doppio rullo tandem: solare microforato + termico' },
+  { id: 'panel1', label: '1 Tenda', desc: 'Tenda a caduta singola motorizzata zip (Ombreggiante)' },
+  { id: 'panel2', label: '2 Tende (Doppio Rullo)', desc: 'Esterna in Kristall trasparente + interna ombreggiante' },
   { id: 'glass', label: 'Vetrata', desc: 'Ante panoramiche in cristallo temperato' }
 ]
 
 const MOUNTING_OPTIONS: Array<{ id: Mounting; label: string; desc: string; cols: string }> = [
   { id: 'free', label: 'Autoportante', desc: '4 colonne portanti a terra', cols: '4 colonne' },
   { id: 'wall1', label: 'Addossata 1 lato', desc: 'Ancorata a parete retrostante (2 colonne frontali)', cols: '2 colonne' },
-  { id: 'wall2', label: 'Addossata 2 lati', desc: 'Ancorata a nicchia / 2 pareti ad angolo', cols: '0 colonne' }
+  { id: 'wall2', label: 'Addossata ad angolo', desc: 'Ancorata a 2 pareti ad angolo (Posteriore e Sinistra)', cols: '1 colonna' },
+  { id: 'wall_opposed', label: 'Addossata tra 2 pareti', desc: 'Ancorata tra pareti contrapposte (Sinistra e Destra)', cols: '0 colonne' }
 ]
 
 export function Panel({
@@ -85,14 +86,15 @@ export function Panel({
   }
 
   const updateSide = (side: SideKey, patch: Partial<PergolaConfig['sides'][SideKey]>) => {
-    // When switching to panel1 or panel2, default opening to 50% drop if closed
     const current = cfg.sides[side]
     let nextOpening = patch.opening !== undefined ? patch.opening : current.opening
-    if (
-      (patch.system === 'panel1' || patch.system === 'panel2') &&
-      nextOpening === 0
-    ) {
+    let nextOpeningExternal = patch.openingExternal !== undefined ? patch.openingExternal : (current.openingExternal ?? current.opening)
+    if (patch.system === 'panel1' && nextOpening === 0) {
       nextOpening = 0.5
+    }
+    if (patch.system === 'panel2') {
+      if (nextOpening === 0) nextOpening = 0.5
+      if (nextOpeningExternal === 0) nextOpeningExternal = 0.5
     }
 
     set({
@@ -101,7 +103,8 @@ export function Panel({
         [side]: {
           ...current,
           ...patch,
-          opening: nextOpening
+          opening: nextOpening,
+          openingExternal: nextOpeningExternal
         }
       }
     })
@@ -113,6 +116,7 @@ export function Panel({
   const isWallSide = (side: SideKey) => {
     if (cfg.mounting === 'wall1' && side === 'B') return true
     if (cfg.mounting === 'wall2' && (side === 'B' || side === 'L')) return true
+    if (cfg.mounting === 'wall_opposed' && (side === 'L' || side === 'R')) return true
     return false
   }
 
@@ -403,29 +407,11 @@ export function Panel({
                 </div>
 
                 {/* Controls specific to Screens */}
-                {(currentSide.system === 'panel1' || currentSide.system === 'panel2') && (
+                {currentSide.system === 'panel1' && (
                   <div className="sub-options">
-                    <div className="option-row">
-                      <span className="option-label">Tipologia Tessuto:</span>
-                      <div className="pill-group">
-                        <button
-                          className={`pill-btn ${currentSide.fabric === 'shade' ? 'active' : ''}`}
-                          onClick={() => updateSide(activeSide, { fabric: 'shade' })}
-                        >
-                          ☀️ Ombreggiante (Estate)
-                        </button>
-                        <button
-                          className={`pill-btn ${currentSide.fabric === 'thermal' ? 'active' : ''}`}
-                          onClick={() => updateSide(activeSide, { fabric: 'thermal' })}
-                        >
-                          ❄️ Termico Oscurante (Inverno)
-                        </button>
-                      </div>
-                    </div>
-
                     <div className="slider-row" style={{ marginTop: '0.9rem' }}>
                       <div className="row-meta">
-                        <span className="row-name">Discesa Tenda</span>
+                        <span className="row-name">Discesa Tenda Ombreggiante</span>
                         <span className="row-val">{Math.round(currentSide.opening * 100)}%</span>
                       </div>
                       <input
@@ -439,6 +425,50 @@ export function Panel({
                       <div className="slider-limits">
                         <span>0% (Raccolta nel cassonetto)</span>
                         <span>100% (Completamente a terra)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentSide.system === 'panel2' && (
+                  <div className="sub-options">
+                    {/* Slider 1: External Clear PVC Kristall Screen */}
+                    <div className="slider-row" style={{ marginTop: '0.6rem' }}>
+                      <div className="row-meta">
+                        <span className="row-name">🪟 Tenda Esterna (PVC Kristall Trasparente)</span>
+                        <span className="row-val">{Math.round((currentSide.openingExternal ?? currentSide.opening) * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.02}
+                        value={currentSide.openingExternal ?? currentSide.opening}
+                        onChange={(e) => updateSide(activeSide, { openingExternal: parseFloat(e.target.value) })}
+                      />
+                      <div className="slider-limits">
+                        <span>0% (Raccolta)</span>
+                        <span>100% (A terra)</span>
+                      </div>
+                    </div>
+
+                    {/* Slider 2: Internal Shade Fabric Screen */}
+                    <div className="slider-row" style={{ marginTop: '1rem' }}>
+                      <div className="row-meta">
+                        <span className="row-name">☀️ Tenda Interna (Tessuto Ombreggiante)</span>
+                        <span className="row-val">{Math.round(currentSide.opening * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.02}
+                        value={currentSide.opening}
+                        onChange={(e) => updateSide(activeSide, { opening: parseFloat(e.target.value) })}
+                      />
+                      <div className="slider-limits">
+                        <span>0% (Raccolta)</span>
+                        <span>100% (A terra)</span>
                       </div>
                     </div>
                   </div>

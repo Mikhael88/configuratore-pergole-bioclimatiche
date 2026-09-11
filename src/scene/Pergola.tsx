@@ -100,6 +100,43 @@ function Part({
  * Dedicated External Column LED:
  * - When ledColumn is active, renders nodes.col_led along each active column corner groove.
  */
+function ColumnLed({
+  node,
+  scale,
+  mat
+}: {
+  node: THREE.Object3D
+  scale: [number, number, number]
+  mat: THREE.Material
+}) {
+  const cloned = useMemo(() => {
+    const c = node.clone(true)
+    c.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh
+        mesh.material = mat
+        mesh.castShadow = false
+        mesh.receiveShadow = false
+        mesh.renderOrder = 10
+      }
+    })
+    return c
+  }, [node, mat])
+
+  return (
+    <group scale={scale}>
+      <primitive object={cloned} />
+    </group>
+  )
+}
+
+/**
+ * Columns:
+ * - 'free': 4 vertical structural columns
+ * - 'wall1': 2 front columns (rear anchored into wall)
+ * - 'wall2': 1 front-right column (anchored into corner rear & left walls)
+ * - 'wall_opposed': 0 columns (pergola spans between 2 opposed parallel walls)
+ */
 function Columns({
   nodes,
   mat,
@@ -116,7 +153,7 @@ function Columns({
   const sides = useConfigSelector((s) => s.sides)
   const ledColumn = useConfigSelector((s) => s.ledColumn)
 
-  if (mounting === 'wall2') {
+  if (mounting === 'wall_opposed') {
     return null
   }
 
@@ -124,14 +161,25 @@ function Columns({
   const colScaleY = H / 1.9859
 
   // Determine active columns and their mirror scales
-  const corners: Array<{ sa: SideKey; sb: SideKey; x: number; z: number; sx: number; sz: number }> = [
-    { sa: 'L', sb: 'F', x: -width / 2, z: depth / 2, sx: 1, sz: 1 },
-    { sa: 'R', sb: 'F', x: width / 2, z: depth / 2, sx: -1, sz: 1 }
-  ]
+  let corners: Array<{ sa: SideKey; sb: SideKey; x: number; z: number; sx: number; sz: number }> = []
 
-  if (mounting === 'free') {
-    corners.push({ sa: 'L', sb: 'B', x: -width / 2, z: -depth / 2, sx: 1, sz: -1 })
-    corners.push({ sa: 'R', sb: 'B', x: width / 2, z: -depth / 2, sx: -1, sz: -1 })
+  if (mounting === 'wall2') {
+    // 2 perpendicular walls (Back & Left): exactly 1 column at Front-Right corner (+X, +Z)
+    corners = [{ sa: 'R', sb: 'F', x: width / 2, z: depth / 2, sx: -1, sz: 1 }]
+  } else if (mounting === 'wall1') {
+    // 1 rear wall: 2 front columns
+    corners = [
+      { sa: 'L', sb: 'F', x: -width / 2, z: depth / 2, sx: 1, sz: 1 },
+      { sa: 'R', sb: 'F', x: width / 2, z: depth / 2, sx: -1, sz: 1 }
+    ]
+  } else {
+    // Freestanding: 4 columns
+    corners = [
+      { sa: 'L', sb: 'F', x: -width / 2, z: depth / 2, sx: 1, sz: 1 },
+      { sa: 'R', sb: 'F', x: width / 2, z: depth / 2, sx: -1, sz: 1 },
+      { sa: 'L', sb: 'B', x: -width / 2, z: -depth / 2, sx: 1, sz: -1 },
+      { sa: 'R', sb: 'B', x: width / 2, z: -depth / 2, sx: -1, sz: -1 }
+    ]
   }
 
   const colFor = (a: SideKey, b: SideKey): THREE.Object3D => {
@@ -153,14 +201,12 @@ function Columns({
               material={mat}
             />
 
-            {/* Native External Column LED Strip (dual vertical channel strips) */}
+            {/* Native External Column LED Strip rendered directly at column origin with exact CAD alignment */}
             {ledColumn && nodes.col_led && (
-              <Part
+              <ColumnLed
                 node={nodes.col_led}
-                anchor="baseCenter"
                 scale={[sx, colScaleY, sz]}
-                material={ledMat}
-                castShadow={false}
+                mat={ledMat}
               />
             )}
           </group>
@@ -210,12 +256,6 @@ function BeamsAndFrame({
     { pos: [width / 2, H, -depth / 2], sx: -1, sz: -1 }
   ]
 
-  const ledNode = nodes.beam_led
-  const ledSliceX = useMemo(() => {
-    if (!ledNode) return 1
-    const b = localBox(ledNode)
-    return Math.max(0.005, b.max.x - b.min.x)
-  }, [ledNode])
 
   // Beams extended slightly into corner nodes (+0.08m) to eliminate the corner square notch
   const beamXScale = (width + 0.08) / sliceX
@@ -271,47 +311,25 @@ function BeamsAndFrame({
         />
       ))}
 
-      {/* Native Beam LED Strips running along inner beam channels */}
-      {ledBeam && ledNode && (
-        <group position={[0, H + 0.014, 0]}>
+      {/* Native Beam LED Strips running along inner beam channels on all 4 perimeter beams */}
+      {ledBeam && (
+        <group position={[0, H + 0.005, 0]}>
           {/* Front Beam LED */}
-          <Part
-            node={ledNode}
-            anchor="center"
-            position={[0, 0, depth / 2 - 0.045]}
-            scale={[(width - 0.20) / ledSliceX, 1, 1]}
-            material={ledMat}
-            castShadow={false}
-          />
-          {/* Back Beam LED (mirrored on Z) */}
-          <Part
-            node={ledNode}
-            anchor="center"
-            position={[0, 0, -depth / 2 + 0.045]}
-            scale={[(width - 0.20) / ledSliceX, 1, -1]}
-            material={ledMat}
-            castShadow={false}
-          />
+          <mesh position={[0, 0, depth / 2 - 0.052]} material={ledMat}>
+            <boxGeometry args={[width - 0.18, 0.006, 0.012]} />
+          </mesh>
+          {/* Back Beam LED */}
+          <mesh position={[0, 0, -depth / 2 + 0.052]} material={ledMat}>
+            <boxGeometry args={[width - 0.18, 0.006, 0.012]} />
+          </mesh>
           {/* Left Beam LED */}
-          <Part
-            node={ledNode}
-            anchor="center"
-            position={[-width / 2 + 0.045, 0, 0]}
-            rotation={[0, Math.PI / 2, 0]}
-            scale={[(depth - 0.20) / ledSliceX, 1, 1]}
-            material={ledMat}
-            castShadow={false}
-          />
+          <mesh position={[-width / 2 + 0.052, 0, 0]} material={ledMat}>
+            <boxGeometry args={[0.012, 0.006, depth - 0.18]} />
+          </mesh>
           {/* Right Beam LED */}
-          <Part
-            node={ledNode}
-            anchor="center"
-            position={[width / 2 - 0.045, 0, 0]}
-            rotation={[0, -Math.PI / 2, 0]}
-            scale={[(depth - 0.20) / ledSliceX, 1, 1]}
-            material={ledMat}
-            castShadow={false}
-          />
+          <mesh position={[width / 2 - 0.052, 0, 0]} material={ledMat}>
+            <boxGeometry args={[0.012, 0.006, depth - 0.18]} />
+          </mesh>
         </group>
       )}
     </group>
@@ -349,8 +367,8 @@ function Louvers({
   const K = clamp(Math.round(depth / 0.12), 6, 60)
   const pitch = depth / K
 
-  // Total span reaching into side beam hinge channels
-  const totalLouverSpan = Math.max(0.5, width - 0.15)
+  // Total span reaching directly inside side beam hinge channels (traverso-fessura-P)
+  const totalLouverSpan = Math.max(0.5, width - 0.03)
   // Louver blade width spans completely between the two hinge pins with NO gaps
   const slatWidth = Math.max(0.4, totalLouverSpan - 2 * pernoW)
 
@@ -452,11 +470,13 @@ function Sides({
   nodes,
   structureMat,
   fabricMat,
+  kristallMat,
   glassMat
 }: {
   nodes: Record<string, THREE.Object3D>
   structureMat: THREE.Material
   fabricMat: THREE.Material
+  kristallMat: THREE.Material
   glassMat: THREE.Material
 }) {
   const width = useConfigSelector((s) => s.width)
@@ -498,6 +518,7 @@ function Sides({
         // If attached to a wall, omit side closures on that wall side
         if (mounting === 'wall1' && k === 'B') return null
         if (mounting === 'wall2' && (k === 'B' || k === 'L')) return null
+        if (mounting === 'wall_opposed' && (k === 'L' || k === 'R')) return null
 
         const sc = sides[k]
         if (sc.system === 'none') return null
@@ -507,74 +528,81 @@ function Sides({
         const screenSpan = isX ? width - 0.13 : depth - 0.13
         const glassSpan = isX ? width - 0.24 : depth - 0.24
 
-        const fabRotY = isX ? 0 : Math.PI / 2
+        // Outward orientation for screens so local +Z is ALWAYS facing OUTWARDS:
+        const fabRotY = isX ? (k === 'F' ? 0 : Math.PI) : (k === 'R' ? Math.PI / 2 : -Math.PI / 2)
         const glassRotY = isX ? Math.PI / 2 : 0
 
         // ================= SCREENS (1 or 2 Tende) =================
         if (sc.system === 'panel1' || sc.system === 'panel2') {
-          const dropHeight = THREE.MathUtils.clamp(sc.opening * (H - 0.06), 0.02, H - 0.06)
-          const dropScale = dropHeight / fabricDropY
-
           const isPanel2 = sc.system === 'panel2'
+          const intDropHeight = THREE.MathUtils.clamp(sc.opening * (H - 0.06), 0.02, H - 0.06)
+          const intDropScale = intDropHeight / fabricDropY
+
+          const extOpening = sc.openingExternal ?? sc.opening
+          const extDropHeight = THREE.MathUtils.clamp(extOpening * (H - 0.06), 0.02, H - 0.06)
+          const extDropScale = extDropHeight / fabricDropY
 
           return (
             <group key={k} position={[g.center[0], H, g.center[2]]} rotation={[0, fabRotY, 0]}>
-              {/* Single Screen: 1 fabric + movable bottom bar */}
+              {/* Single Screen: 1 shade fabric + movable bottom bar */}
               {!isPanel2 ? (
                 <group position={[0, -0.002, 0]}>
-                  {/* Fabric unrolls from top down to dropHeight */}
+                  {/* Fabric unrolls from top down to intDropHeight */}
                   <Part
-                    node={sc.fabric === 'shade' ? nodes.panel_shade_fabric : nodes.panel_thermal_fabric}
+                    node={nodes.panel_shade_fabric}
                     anchor="topCenter"
-                    scale={[screenSpan / fabricSliceX, dropScale, 1]}
+                    scale={[screenSpan / fabricSliceX, intDropScale, 1]}
                     material={fabricMat}
                     castShadow={true}
                   />
                   {/* Bottom closure bar with silicone seal facing DOWN, glides down with fabric */}
                   <Part
-                    node={sc.fabric === 'shade' ? nodes.panel_shade_housing : nodes.panel_thermal_housing}
+                    node={nodes.panel_shade_housing}
                     anchor="topCenter"
-                    position={[0, -dropHeight, 0]}
+                    position={[0, -intDropHeight, 0]}
                     rotation={[Math.PI, 0, 0]}
                     scale={[screenSpan / fabricSliceX, 1, 1]}
                     material={structureMat}
                   />
                 </group>
               ) : (
-                /* Dual Screen (2 Tende Estate/Inverno): 2 tandem rollers side by side, BOTH fabrics active */
+                /* Dual Screen (2 Tende): 2 tandem rollers side by side
+                   - Track 1 (External, +0.035): Transparent PVC Kristall
+                   - Track 2 (Internal, -0.035): Shade fabric
+                */
                 <group position={[0, -0.002, 0]}>
-                  {/* Track 1: Outdoor Sun Shade (Estate) */}
+                  {/* Track 1: Outdoor Clear PVC Kristall Screen */}
                   <group position={[0, 0, 0.035]}>
                     <Part
                       node={nodes.panel_shade_fabric}
                       anchor="topCenter"
-                      scale={[screenSpan / fabricSliceX, dropScale, 1]}
-                      material={fabricMat}
-                      castShadow={true}
+                      scale={[screenSpan / fabricSliceX, extDropScale, 1]}
+                      material={kristallMat}
+                      castShadow={false}
                     />
                     <Part
                       node={nodes.panel_shade_housing}
                       anchor="topCenter"
-                      position={[0, -dropHeight, 0]}
+                      position={[0, -extDropHeight, 0]}
                       rotation={[Math.PI, 0, 0]}
                       scale={[screenSpan / fabricSliceX, 1, 1]}
                       material={structureMat}
                     />
                   </group>
 
-                  {/* Track 2: Indoor Thermal Wind Screen (Inverno) */}
+                  {/* Track 2: Indoor Sun Shade Fabric */}
                   <group position={[0, 0, -0.035]}>
                     <Part
-                      node={nodes.panel_thermal_fabric}
+                      node={nodes.panel_shade_fabric}
                       anchor="topCenter"
-                      scale={[screenSpan / fabricSliceX, dropScale, 1]}
+                      scale={[screenSpan / fabricSliceX, intDropScale, 1]}
                       material={fabricMat}
                       castShadow={true}
                     />
                     <Part
-                      node={nodes.panel_thermal_housing}
+                      node={nodes.panel_shade_housing}
                       anchor="topCenter"
-                      position={[0, -dropHeight, 0]}
+                      position={[0, -intDropHeight, 0]}
                       rotation={[Math.PI, 0, 0]}
                       scale={[screenSpan / fabricSliceX, 1, 1]}
                       material={structureMat}
@@ -718,7 +746,7 @@ export function Pergola() {
   const cfg = useConfigSelector((s) => s)
 
   // Dynamic PBR Materials for authentic architectural finishes
-  const { structureMat, fabricMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
+  const { structureMat, fabricMat, kristallMat, glassMat, ledBeamMat, ledColumnMat } = useMemo(() => {
     const sMat = new THREE.MeshStandardMaterial({
       color: cfg.colors.structure,
       roughness: cfg.colors.structureRoughness,
@@ -734,6 +762,21 @@ export function Pergola() {
       side: THREE.DoubleSide
     })
 
+    // Transparent PVC Kristall for external weather screens
+    const kMat = new THREE.MeshPhysicalMaterial({
+      color: '#f0f5fa',
+      transmission: 0.96,
+      opacity: 0.98,
+      transparent: true,
+      roughness: 0.05,
+      ior: 1.49,
+      thickness: 0.004,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.04,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+
     const gMat = new THREE.MeshPhysicalMaterial({
       color: cfg.colors.glass,
       transmission: cfg.colors.glassTransmission,
@@ -747,26 +790,27 @@ export function Pergola() {
     })
 
     const bLedOn = cfg.ledBeam
-    const bLedMat = new THREE.MeshStandardMaterial({
-      color: '#ffffff',
-      emissive: bLedOn ? new THREE.Color('#ffe0a0') : new THREE.Color('#111111'),
-      emissiveIntensity: bLedOn ? 3.5 : 0.0,
-      roughness: 0.3,
-      side: THREE.DoubleSide
+    const bLedMat = new THREE.MeshBasicMaterial({
+      color: bLedOn ? '#fff0d0' : '#222222',
+      toneMapped: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4
     })
 
     const cLedOn = cfg.ledColumn
-    const cLedMat = new THREE.MeshStandardMaterial({
-      color: '#ffffff',
-      emissive: cLedOn ? new THREE.Color('#ffe0a0') : new THREE.Color('#111111'),
-      emissiveIntensity: cLedOn ? 3.5 : 0.0,
-      roughness: 0.3,
-      side: THREE.DoubleSide
+    const cLedMat = new THREE.MeshBasicMaterial({
+      color: cLedOn ? '#ffeacc' : '#222222',
+      toneMapped: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4
     })
 
     return {
       structureMat: sMat,
       fabricMat: fMat,
+      kristallMat: kMat,
       glassMat: gMat,
       ledBeamMat: bLedMat,
       ledColumnMat: cLedMat
@@ -779,7 +823,13 @@ export function Pergola() {
       <Columns nodes={nodes} mat={structureMat} ledMat={ledColumnMat} />
       <BeamsAndFrame nodes={nodes} structureMat={structureMat} ledMat={ledBeamMat} />
       <Louvers nodes={nodes} mat={structureMat} />
-      <Sides nodes={nodes} structureMat={structureMat} fabricMat={fabricMat} glassMat={glassMat} />
+      <Sides
+        nodes={nodes}
+        structureMat={structureMat}
+        fabricMat={fabricMat}
+        kristallMat={kristallMat}
+        glassMat={glassMat}
+      />
     </group>
   )
 }

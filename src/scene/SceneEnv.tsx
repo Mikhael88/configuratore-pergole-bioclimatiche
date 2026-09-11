@@ -156,22 +156,23 @@ export function SceneEnv() {
       {/* --- Ambient Lighting --- */}
       <ambientLight intensity={finalAmbientIntensity} color={ambientColor} />
 
-      {/* --- Directional Sun with Live Shadows --- */}
+      {/* --- Directional Sun with High-Definition Soft Shadows --- */}
       <directionalLight
         position={[sunPos.x, sunPos.y, sunPos.z]}
         intensity={finalSunIntensity}
         color={sunColor}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
         shadow-camera-near={1}
-        shadow-camera-far={65}
-        shadow-camera-left={-7}
-        shadow-camera-right={7}
-        shadow-camera-top={7}
-        shadow-camera-bottom={-7}
-        shadow-bias={-0.0003}
-        shadow-normalBias={0.02}
+        shadow-camera-far={60}
+        shadow-camera-left={-6}
+        shadow-camera-right={6}
+        shadow-camera-top={6}
+        shadow-camera-bottom={-6}
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.015}
+        shadow-radius={2}
       />
 
       {/* --- Contact Shadows for Column Feet & Structure Grounding --- */}

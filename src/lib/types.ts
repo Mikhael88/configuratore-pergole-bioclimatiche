@@ -12,7 +12,7 @@ export type SideKey = 'L' | 'R' | 'F' | 'B'
 export type SideSystem = 'panel1' | 'panel2' | 'glass' | 'none'
 export type FabricKind = 'thermal' | 'shade' // thermal=oscurante isolante (inverno), shade=trasparente ombreggiante (estate)
 export type GlassOpenMode = 'accordion' | 'center'
-export type Mounting = 'free' | 'wall1' | 'wall2'
+export type Mounting = 'free' | 'wall1' | 'wall2' | 'wall_opposed'
 export type LightingMode = 'studio' | 'environment'
 export type CameraPreset = 'isometric' | 'front' | 'side' | 'top' | 'interior'
 
@@ -20,7 +20,8 @@ export interface SideConfig {
   system: SideSystem
   fabric: FabricKind
   glassOpen: GlassOpenMode
-  opening: number // 0..1 (discesa tenda o apertura ante)
+  opening: number // 0..1 (discesa tenda interna / singola o apertura ante)
+  openingExternal?: number // 0..1 (discesa tenda esterna trasparente Kristall)
 }
 
 export interface Colors {
@@ -110,7 +111,8 @@ export const defaultSide = (): SideConfig => ({
   system: 'none',
   fabric: 'shade',
   glassOpen: 'center',
-  opening: 0
+  opening: 0,
+  openingExternal: 0
 })
 
 export const defaultConfig: PergolaConfig = {

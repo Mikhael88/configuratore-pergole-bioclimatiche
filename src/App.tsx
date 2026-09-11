@@ -60,7 +60,7 @@ export default function App() {
       {/* 3D Viewport Workspace */}
       <div className="canvas-wrapper">
         <Canvas
-          shadows
+          shadows={{ type: THREE.PCFSoftShadowMap }}
           dpr={[1, 2]}
           gl={{
             preserveDrawingBuffer: true,
