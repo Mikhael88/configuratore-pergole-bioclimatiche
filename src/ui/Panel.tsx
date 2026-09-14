@@ -1,5 +1,19 @@
 import { useState } from 'react'
 import {
+  Blinds,
+  BrickWall,
+  CloudSun,
+  DoorOpen,
+  Lightbulb,
+  Moon,
+  MoveHorizontal,
+  Palette,
+  Ruler,
+  Sparkles,
+  Sun,
+  type LucideIcon
+} from 'lucide-react'
+import {
   useConfigSelector,
   set,
   setStep,
@@ -17,13 +31,14 @@ import {
   GLASS_PRESETS
 } from '../lib/types'
 import { generateSpecificationPdf, CapturedViews } from '../lib/pdfExport'
+import { Icon } from './Icon'
 
-const STEPS = [
-  { id: 0, title: 'Dimensioni', icon: '📐' },
-  { id: 1, title: 'Tetto', icon: '🪟' },
-  { id: 2, title: 'Chiusure', icon: '🚪' },
-  { id: 3, title: 'Finiture', icon: '🎨' },
-  { id: 4, title: 'Luce & Sole', icon: '☀️' }
+const STEPS: Array<{ id: number; title: string; icon: LucideIcon }> = [
+  { id: 0, title: 'Dimensioni', icon: Ruler },
+  { id: 1, title: 'Tetto', icon: Blinds },
+  { id: 2, title: 'Chiusure', icon: DoorOpen },
+  { id: 3, title: 'Finiture', icon: Palette },
+  { id: 4, title: 'Luce & Sole', icon: Sun }
 ]
 
 const SYSTEM_OPTIONS: Array<{ id: SideSystem; label: string; desc: string }> = [
@@ -194,7 +209,9 @@ export function Panel({
             onClick={() => setStep(s.id)}
             title={s.title}
           >
-            <span className="tab-icon">{s.icon}</span>
+            <span className="tab-icon">
+              <Icon icon={s.icon} size={15} />
+            </span>
             <span className="tab-title">{s.title}</span>
           </button>
         ))}
@@ -341,7 +358,9 @@ export function Panel({
                 </div>
               ) : (
                 <div className="info-box success" style={{ marginTop: '1rem' }}>
-                  <span className="info-icon">✨</span>
+                  <span className="info-icon">
+                    <Icon icon={Sparkles} size={14} />
+                  </span>
                   <span>
                     In modalità impacchettamento le lamelle si orientano a 90° e traslano a pacchetto verso il traverso posteriore, liberando completamente il cielo.
                   </span>
@@ -380,7 +399,9 @@ export function Panel({
             {activeSideIsWall ? (
               <div className="control-card">
                 <div className="info-box">
-                  <span className="info-icon">🧱</span>
+                  <span className="info-icon">
+                    <Icon icon={BrickWall} size={14} />
+                  </span>
                   <span>
                     Il lato <b>{SIDE_LABEL[activeSide]}</b> è ancorato alla parete strutturale dell'edificio. Non richiede chiusure perimetrali.
                   </span>
@@ -435,7 +456,10 @@ export function Panel({
                     {/* Slider 1: External Clear PVC Kristall Screen */}
                     <div className="slider-row" style={{ marginTop: '0.6rem' }}>
                       <div className="row-meta">
-                        <span className="row-name">🪟 Tenda Esterna (PVC Kristall Trasparente)</span>
+                        <span className="row-name row-name-with-icon">
+                          <Icon icon={Blinds} size={13} />
+                          Tenda Esterna (PVC Kristall Trasparente)
+                        </span>
                         <span className="row-val">{Math.round((currentSide.openingExternal ?? currentSide.opening) * 100)}%</span>
                       </div>
                       <input
@@ -455,7 +479,10 @@ export function Panel({
                     {/* Slider 2: Internal Shade Fabric Screen */}
                     <div className="slider-row" style={{ marginTop: '1rem' }}>
                       <div className="row-meta">
-                        <span className="row-name">☀️ Tenda Interna (Tessuto Ombreggiante)</span>
+                        <span className="row-name row-name-with-icon">
+                          <Icon icon={Sun} size={13} />
+                          Tenda Interna (Tessuto Ombreggiante)
+                        </span>
                         <span className="row-val">{Math.round(currentSide.opening * 100)}%</span>
                       </div>
                       <input
@@ -484,13 +511,15 @@ export function Panel({
                           className={`pill-btn ${currentSide.glassOpen === 'center' ? 'active' : ''}`}
                           onClick={() => updateSide(activeSide, { glassOpen: 'center' })}
                         >
-                          {activeSpan >= 3.5 ? '🚪 Doppia porta centrale' : '🚪 Porta centrale singola'}
+                          <Icon icon={DoorOpen} size={13} />
+                          {activeSpan >= 3.5 ? 'Doppia porta centrale' : 'Porta centrale singola'}
                         </button>
                         <button
                           className={`pill-btn ${currentSide.glassOpen === 'accordion' ? 'active' : ''}`}
                           onClick={() => updateSide(activeSide, { glassOpen: 'accordion' })}
                         >
-                          ↔️ Scorrevole a pacchetto
+                          <Icon icon={MoveHorizontal} size={13} />
+                          Scorrevole a pacchetto
                         </button>
                       </div>
                     </div>
@@ -678,13 +707,15 @@ export function Panel({
                     className={`pill-btn ${cfg.lightingMode === 'studio' ? 'active' : ''}`}
                     onClick={() => set({ lightingMode: 'studio' })}
                   >
-                    💡 Studio Fotografico
+                    <Icon icon={Lightbulb} size={13} />
+                    Studio Fotografico
                   </button>
                   <button
                     className={`pill-btn ${cfg.lightingMode === 'environment' ? 'active' : ''}`}
                     onClick={() => set({ lightingMode: 'environment' })}
                   >
-                    🌤️ Luce Cielo / Ambiente
+                    <Icon icon={CloudSun} size={13} />
+                    Luce Cielo / Ambiente
                   </button>
                 </div>
               </div>
@@ -750,8 +781,10 @@ export function Panel({
               <div className="slider-row" style={{ marginTop: '1.2rem' }}>
                 <div className="row-meta">
                   <span className="row-name">Altezza Sole (Elevazione)</span>
-                  <span className="row-val">
-                    {cfg.sun.elevation}° {cfg.sun.elevation <= 18 ? '🌙 Notte / Tramonto' : '☀️ Giorno'}
+                  <span className="row-val row-val-with-icon">
+                    {cfg.sun.elevation}°
+                    <Icon icon={cfg.sun.elevation <= 18 ? Moon : Sun} size={12} />
+                    {cfg.sun.elevation <= 18 ? 'Notte / Tramonto' : 'Giorno'}
                   </span>
                 </div>
                 <input
@@ -800,7 +833,9 @@ export function Panel({
               </div>
 
               <div className="info-box" style={{ marginTop: '1rem' }}>
-                <span className="info-icon">☀️</span>
+                <span className="info-icon">
+                  <Icon icon={Sun} size={14} />
+                </span>
                 <span>
                   Al calare del sole verso l'orizzonte o la notte, le strip LED sottotrave si attivano creando un'atmosfera calda e accogliente proiettata a terra.
                 </span>

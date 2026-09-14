@@ -1,6 +1,8 @@
 import { useConfigSelector } from '../lib/store'
 import { Html, Line } from '@react-three/drei'
 
+const LINE_COLOR = '#64748b'
+
 export function DimensionsOverlay() {
   const width = useConfigSelector((s) => s.width)
   const depth = useConfigSelector((s) => s.depth)
@@ -26,30 +28,29 @@ export function DimensionsOverlay() {
             [-w / 2, 0, 0],
             [w / 2, 0, 0]
           ]}
-          color="#334155"
-          lineWidth={1.5}
-        />
-        {/* End ticks */}
-        <Line
-          points={[
-            [-w / 2, 0, -0.1],
-            [-w / 2, 0, 0.1]
-          ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
         <Line
           points={[
-            [w / 2, 0, -0.1],
-            [w / 2, 0, 0.1]
+            [-w / 2, 0, -0.08],
+            [-w / 2, 0, 0.08]
           ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
-        <Html position={[0, 0, 0]} center distanceFactor={14} className="dim-badge-container">
-          <div className="dim-badge">
-            <span className="dim-label">Larghezza (L)</span>
-            <span className="dim-value">{w.toFixed(2)} m</span>
+        <Line
+          points={[
+            [w / 2, 0, -0.08],
+            [w / 2, 0, 0.08]
+          ]}
+          color={LINE_COLOR}
+          lineWidth={1}
+        />
+        <Html position={[0, 0, 0]} center className="dim-badge-container">
+          <div className="dim-badge" title="Larghezza (L)">
+            <span className="dim-value">{w.toFixed(2)}</span>
+            <span className="dim-unit">m</span>
           </div>
         </Html>
       </group>
@@ -61,30 +62,29 @@ export function DimensionsOverlay() {
             [0, 0, -d / 2],
             [0, 0, d / 2]
           ]}
-          color="#334155"
-          lineWidth={1.5}
-        />
-        {/* End ticks */}
-        <Line
-          points={[
-            [-0.1, 0, -d / 2],
-            [0.1, 0, -d / 2]
-          ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
         <Line
           points={[
-            [-0.1, 0, d / 2],
-            [0.1, 0, d / 2]
+            [-0.08, 0, -d / 2],
+            [0.08, 0, -d / 2]
           ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
-        <Html position={[0, 0, 0]} center distanceFactor={14} className="dim-badge-container">
-          <div className="dim-badge">
-            <span className="dim-label">Profondità (P)</span>
-            <span className="dim-value">{d.toFixed(2)} m</span>
+        <Line
+          points={[
+            [-0.08, 0, d / 2],
+            [0.08, 0, d / 2]
+          ]}
+          color={LINE_COLOR}
+          lineWidth={1}
+        />
+        <Html position={[0, 0, 0]} center className="dim-badge-container">
+          <div className="dim-badge" title="Profondità (P)">
+            <span className="dim-value">{d.toFixed(2)}</span>
+            <span className="dim-unit">m</span>
           </div>
         </Html>
       </group>
@@ -96,30 +96,29 @@ export function DimensionsOverlay() {
             [0, 0, 0],
             [0, h, 0]
           ]}
-          color="#334155"
-          lineWidth={1.5}
-        />
-        {/* End ticks */}
-        <Line
-          points={[
-            [-0.1, 0, 0],
-            [0.1, 0, 0]
-          ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
         <Line
           points={[
-            [-0.1, h, 0],
-            [0.1, h, 0]
+            [-0.08, 0, 0],
+            [0.08, 0, 0]
           ]}
-          color="#334155"
-          lineWidth={1.5}
+          color={LINE_COLOR}
+          lineWidth={1}
         />
-        <Html position={[0, h / 2, 0]} center distanceFactor={14} className="dim-badge-container">
-          <div className="dim-badge">
-            <span className="dim-label">Altezza (A)</span>
-            <span className="dim-value">{h.toFixed(2)} m</span>
+        <Line
+          points={[
+            [-0.08, h, 0],
+            [0.08, h, 0]
+          ]}
+          color={LINE_COLOR}
+          lineWidth={1}
+        />
+        <Html position={[0, h / 2, 0]} center className="dim-badge-container">
+          <div className="dim-badge" title="Altezza (A)">
+            <span className="dim-value">{h.toFixed(2)}</span>
+            <span className="dim-unit">m</span>
           </div>
         </Html>
       </group>
