@@ -27,6 +27,10 @@ export default function App() {
     const origPos = camera.position.clone()
     const origTarget = controlsRef.current ? controlsRef.current.target.clone() : new THREE.Vector3(0, 1, 0)
     const origFov = camera.fov
+    const viewBackup = camera.view ? { ...camera.view } : null
+
+    // Neutral framing for export (no sidebar compensation)
+    camera.clearViewOffset()
 
     const H = getConfig().height
 
@@ -49,6 +53,18 @@ export default function App() {
     camera.fov = origFov
     camera.position.copy(origPos)
     camera.lookAt(origTarget)
+    if (viewBackup?.enabled) {
+      camera.setViewOffset(
+        viewBackup.fullWidth,
+        viewBackup.fullHeight,
+        viewBackup.offsetX,
+        viewBackup.offsetY,
+        viewBackup.width,
+        viewBackup.height
+      )
+    } else {
+      camera.clearViewOffset()
+    }
     camera.updateProjectionMatrix()
     gl.render(scene, camera)
 
@@ -91,6 +107,14 @@ export default function App() {
 
         {/* Viewpoint presets dock */}
         <CameraDock />
+
+        <div className="brand-logo-box" aria-label="FrontYard Group">
+          <img
+            src="/brand/frontyard-group.png"
+            alt="FrontYard Group"
+            className="brand-logo-img"
+          />
+        </div>
       </div>
 
       {/* Minimalist Glassmorphic Configuration Panel */}

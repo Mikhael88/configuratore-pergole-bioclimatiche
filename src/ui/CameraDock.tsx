@@ -1,55 +1,79 @@
+import { useState } from 'react'
+import {
+  ArrowDownToDot,
+  CircleDot,
+  CloudSun,
+  Dot,
+  Lightbulb,
+  RedoDot,
+  Ruler,
+  Scan,
+  type LucideIcon
+} from 'lucide-react'
 import { useConfigSelector, triggerCameraPreset, set } from '../lib/store'
 import { CameraPreset } from '../lib/types'
+import { Icon } from './Icon'
+
+const PRESETS: Array<{ id: CameraPreset; label: string; icon: LucideIcon }> = [
+  { id: 'isometric', label: 'Prospettiva', icon: RedoDot },
+  { id: 'front', label: 'Frontale', icon: Dot },
+  { id: 'side', label: 'Lato', icon: ArrowDownToDot },
+  { id: 'top', label: 'Dall’alto', icon: Scan },
+  { id: 'interior', label: 'Interno', icon: CircleDot }
+]
 
 export function CameraDock() {
+  const [activePreset, setActivePreset] = useState<CameraPreset>('isometric')
   const showDims = useConfigSelector((s) => s.showDimensions)
   const lightingMode = useConfigSelector((s) => s.lightingMode)
 
-  const presets: Array<{ id: CameraPreset; label: string; icon: string }> = [
-    { id: 'isometric', label: 'Prospettiva', icon: '◰' },
-    { id: 'front', label: 'Fronte', icon: '◻' },
-    { id: 'side', label: 'Lato', icon: '▯' },
-    { id: 'top', label: 'Dall’alto', icon: '⬒' },
-    { id: 'interior', label: 'Interno', icon: '▲' }
-  ]
+  const selectPreset = (id: CameraPreset) => {
+    setActivePreset(id)
+    triggerCameraPreset(id)
+  }
 
   return (
-    <div className="camera-dock">
-      <div className="dock-group">
-        {presets.map((p) => (
-          <button
-            key={p.id}
-            className="dock-btn"
-            onClick={() => triggerCameraPreset(p.id)}
-            title={`Vista ${p.label}`}
-          >
-            <span className="dock-icon">{p.icon}</span>
-            <span className="dock-label">{p.label}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="dock-separator" />
-
-      <div className="dock-group">
+    <>
+      {/* Quote + lighting — top, just left of the glass sidebar */}
+      <div className="viewport-tools">
         <button
-          className={`dock-btn ${showDims ? 'active' : ''}`}
+          className={`viewport-tool-btn ${showDims ? 'active' : ''}`}
           onClick={() => set({ showDimensions: !showDims })}
           title="Mostra / Nascondi quote 3D"
+          aria-label="Quote"
         >
-          <span className="dock-icon">📏</span>
-          <span className="dock-label">Quote</span>
+          <Icon icon={Ruler} size={16} />
         </button>
-
         <button
-          className={`dock-btn ${lightingMode === 'environment' ? 'active' : ''}`}
-          onClick={() => set({ lightingMode: lightingMode === 'studio' ? 'environment' : 'studio' })}
+          className={`viewport-tool-btn ${lightingMode === 'environment' ? 'active' : ''}`}
+          onClick={() =>
+            set({ lightingMode: lightingMode === 'studio' ? 'environment' : 'studio' })
+          }
           title="Alterna tra Luce Studio e Luce Cielo/Ambiente"
+          aria-label={lightingMode === 'studio' ? 'Studio' : 'Ambiente'}
         >
-          <span className="dock-icon">{lightingMode === 'studio' ? '💡' : '🌤️'}</span>
-          <span className="dock-label">{lightingMode === 'studio' ? 'Studio' : 'Ambiente'}</span>
+          <Icon icon={lightingMode === 'studio' ? Lightbulb : CloudSun} size={16} />
         </button>
       </div>
-    </div>
+
+      {/* View presets only */}
+      <div className="camera-dock">
+        <div className="dock-group">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              className={`dock-btn ${activePreset === p.id ? 'active' : ''}`}
+              onClick={() => selectPreset(p.id)}
+              title={`Vista ${p.label}`}
+            >
+              <span className="dock-icon">
+                <Icon icon={p.icon} size={14} />
+              </span>
+              <span className="dock-label">{p.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }

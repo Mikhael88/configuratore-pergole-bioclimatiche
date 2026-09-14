@@ -58,6 +58,33 @@ body, html, #root {
   display: flex;
 }
 
+/* ================= BRAND LOGO ================= */
+.brand-logo-box {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+  z-index: 40;
+  pointer-events: none;
+  user-select: none;
+}
+
+.brand-logo-img {
+  display: block;
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+}
+
 /* ================= 3D VIEWPORT ================= */
 .canvas-wrapper {
   position: absolute;
@@ -72,7 +99,8 @@ body, html, #root {
 .camera-dock {
   position: absolute;
   bottom: 24px;
-  left: calc(50% - 210px);
+  /* Center in the free area left of the glass sidebar */
+  left: calc((100% - var(--sidebar-overlay, 445px)) / 2);
   transform: translateX(-50%);
   background: var(--glass-bg);
   backdrop-filter: blur(28px) saturate(190%);
@@ -93,13 +121,6 @@ body, html, #root {
   gap: 5px;
 }
 
-.dock-separator {
-  width: 1px;
-  height: 22px;
-  background: rgba(203, 213, 225, 0.7);
-  margin: 0 4px;
-}
-
 .dock-btn {
   display: flex;
   align-items: center;
@@ -115,12 +136,7 @@ body, html, #root {
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.dock-btn:hover {
-  background: var(--neu-flat);
-  box-shadow: var(--neu-extrude-sm);
-  color: var(--text-primary);
-}
-
+.dock-btn:hover,
 .dock-btn.active {
   background: #ffffff;
   color: var(--primary-accent);
@@ -129,7 +145,51 @@ body, html, #root {
 }
 
 .dock-icon {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: inherit;
+}
+
+/* Quote + Studio tools — top, 5px left of glass sidebar */
+.viewport-tools {
+  position: absolute;
+  top: 20px; /* align with .glass-panel */
+  right: calc(var(--sidebar-overlay, 445px) + 5px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 40;
+}
+
+.viewport-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.viewport-tool-btn:hover {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+.viewport-tool-btn.active {
+  background: #ffffff;
+  color: var(--primary-accent);
+  box-shadow: var(--neu-pressed);
+  border-color: rgba(37, 99, 235, 0.2);
 }
 
 /* ================= GLASS PANEL (SIDEBAR) ================= */
@@ -261,7 +321,11 @@ body, html, #root {
 }
 
 .tab-icon {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: inherit;
 }
 
 .tab-title {
@@ -334,6 +398,12 @@ body, html, #root {
   color: var(--text-secondary);
 }
 
+.row-name-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .row-val {
   font-size: 12px;
   font-weight: 700;
@@ -342,6 +412,12 @@ body, html, #root {
   padding: 2px 7px;
   border-radius: var(--radius-sm);
   box-shadow: var(--neu-extrude-sm);
+}
+
+.row-val-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 input[type="range"] {
@@ -401,7 +477,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .info-icon {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  line-height: 0;
+  color: inherit;
 }
 
 /* Choice Cards Grid (Tactile Extrusion) */
@@ -598,6 +680,10 @@ input:checked + .slider.round:before {
 
 .pill-btn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   padding: 7px 8px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.85);
@@ -711,29 +797,33 @@ input:checked + .slider.round:before {
 }
 
 .dim-badge {
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #ffffff;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #f8fafc;
+  font-family: var(--font-family);
+  font-size: 9pt;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   user-select: none;
-}
-
-.dim-label {
-  color: #94a3b8;
-  font-weight: 500;
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dim-value {
-  color: #38bdf8;
-  font-weight: 700;
+  color: #f8fafc;
+  font-weight: 600;
+  font-size: 9pt;
+}
+
+.dim-unit {
+  color: rgba(248, 250, 252, 0.65);
+  font-size: 8pt;
+  font-weight: 500;
 }
