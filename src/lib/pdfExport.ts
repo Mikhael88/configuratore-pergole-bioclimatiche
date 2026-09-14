@@ -68,7 +68,9 @@ export async function generateSpecificationPdf(
       ? 'Autoportante (4 colonne a terra)'
       : cfg.mounting === 'wall1'
       ? 'Addossata a parete — 1 lato (2 colonne a terra)'
-      : 'Addossata a parete — 2 lati (0 colonne, ancoraggio integrale)'
+      : cfg.mounting === 'wall2'
+      ? 'Addossata ad angolo — 2 pareti (1 colonna a terra)'
+      : 'Addossata tra 2 pareti contrapposte (0 colonne, ancoraggio integrale)'
 
   doc.text(`• Larghezza nominale (L): ${cfg.width.toFixed(2)} m`, 16, y)
   doc.text(`• Profondità nominale (P): ${cfg.depth.toFixed(2)} m`, 85, y)

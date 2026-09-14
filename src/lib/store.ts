@@ -222,6 +222,8 @@ export const set = (patch: Partial<PergolaConfig>): void => {
       next.fixedSides = { L: false, R: false, F: false, B: true }
     } else if (patch.mounting === 'wall2') {
       next.fixedSides = { L: true, R: false, F: false, B: true }
+    } else if (patch.mounting === 'wall_opposed') {
+      next.fixedSides = { L: true, R: true, F: false, B: false }
     }
   }
 

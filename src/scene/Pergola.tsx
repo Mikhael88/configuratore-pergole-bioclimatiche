@@ -156,10 +156,6 @@ function Columns({
   const sides = useConfigSelector((s) => s.sides)
   const ledColumn = useConfigSelector((s) => s.ledColumn)
 
-  if (mounting === 'wall_opposed') {
-    return null
-  }
-
   // Dynamic vertical scaling from CAD base height (computed directly from model)
   const colHeightCAD = useMemo(() => {
     if (!nodes.col_single) return 1.9100
@@ -172,7 +168,10 @@ function Columns({
   // Determine active columns and their mirror scales
   let corners: Array<{ sa: SideKey; sb: SideKey; x: number; z: number; sx: number; sz: number }> = []
 
-  if (mounting === 'wall2') {
+  if (mounting === 'wall_opposed') {
+    // 2 opposed parallel walls (Left & Right): 0 columns (fully suspended / anchored)
+    corners = []
+  } else if (mounting === 'wall2') {
     // 2 perpendicular walls (Back & Left): exactly 1 column at Front-Right corner (+X, +Z)
     corners = [{ sa: 'R', sb: 'F', x: width / 2, z: depth / 2, sx: -1, sz: 1 }]
   } else if (mounting === 'wall1') {
