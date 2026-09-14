@@ -9,8 +9,10 @@ import {
   MoveHorizontal,
   Palette,
   Ruler,
+  Shield,
   Sparkles,
   Sun,
+  Wind,
   type LucideIcon
 } from 'lucide-react'
 import {
@@ -612,13 +614,15 @@ export function Panel({
                   className={`pill-btn ${cfg.fabricWeave === 'soltis' || !cfg.fabricWeave ? 'active' : ''}`}
                   onClick={() => set({ fabricWeave: 'soltis' })}
                 >
-                  🛡️ Soltis 92 (Oscurante)
+                  <Icon icon={Shield} size={13} />
+                  Soltis 92 (Oscurante)
                 </button>
                 <button
                   className={`pill-btn ${cfg.fabricWeave === 'ferrari' ? 'active' : ''}`}
                   onClick={() => set({ fabricWeave: 'ferrari' })}
                 >
-                  💨 Serge Ferrari (Traspirante)
+                  <Icon icon={Wind} size={13} />
+                  Serge Ferrari (Traspirante)
                 </button>
               </div>
 

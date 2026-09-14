@@ -97,9 +97,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Dynamic Brand Logo badge in top-left */}
-      <BrandLogo brand={brand} />
-
       {/* 3D Viewport Workspace */}
       <div className="canvas-wrapper">
         <Canvas
@@ -137,13 +134,8 @@ export default function App() {
         {/* Viewpoint presets dock */}
         <CameraDock />
 
-        <div className="brand-logo-box" aria-label="FrontYard Group">
-          <img
-            src="/brand/frontyard-group.png"
-            alt="FrontYard Group"
-            className="brand-logo-img"
-          />
-        </div>
+        {/* Dynamic Brand Logo badge in top-left */}
+        <BrandLogo brand={brand} />
       </div>
 
       {/* Minimalist Glassmorphic Configuration Panel */}

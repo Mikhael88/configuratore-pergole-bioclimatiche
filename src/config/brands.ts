@@ -13,8 +13,8 @@ export const DEFAULT_BRAND_HOST = 'keoutdoordesign.tredo.it'
 const keConfig: BrandConfig = {
   domain: 'keoutdoordesign.tredo.it',
   brandName: 'KE Outdoor Design',
-  logoDir: '/brands/ke/',
-  logo: '/brands/ke/logo.svg',
+  logoDir: '/brand/',
+  logo: '/brand/frontyard-group.png',
   favicon: '/brands/ke/favicon.ico',
   title: 'KE Outdoor Design — Configuratore Pergole Bioclimatiche 3D',
   description:
