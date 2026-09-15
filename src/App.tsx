@@ -13,34 +13,10 @@ import { BrandLogo } from './ui/BrandLogo'
 import { CapturedViews } from './lib/pdfExport'
 import { getConfig } from './lib/store'
 import { getBrandByHost } from './config/getBrandByHost'
-import { INTRO_ENABLED, shouldPlayIntro, useIntro } from './intro/intro'
-import { CloudsLayer } from './intro/CloudsLayer'
-import { IntroFlight } from './intro/IntroFlight'
-import { IntroOverlay } from './intro/IntroOverlay'
-
-/** Camera spawn when the intro plays: high above in cloud layer. */
-const INTRO_CAMERA_POS: [number, number, number] = [9.5, 17.5, 15.5]
-const DEFAULT_CAMERA_POS: [number, number, number] = [7, 4.8, 7]
-const DEFAULT_FOV = 40
-const INTRO_FOV = 40
 
 export default function App() {
   const brand = getBrandByHost()
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
-  // Decide once per mount whether the intro plays (first visit or reload).
-  const playIntro = useRef(INTRO_ENABLED && shouldPlayIntro()).current
-  const introPhase = useIntro((s) => s.phase)
-  const uiReveal = useIntro((s) => s.uiReveal)
-  const introActive = playIntro && introPhase !== 'done'
-
-  // Debug hook for live inspection (safe to keep — tiny)
-  useEffect(() => {
-    ;(window as any).__introState = () => ({
-      playIntro,
-      phase: introPhase,
-      uiReveal
-    })
-  }, [playIntro, introPhase, uiReveal])
   const threeRef = useRef<{
     gl: THREE.WebGLRenderer
     scene: THREE.Scene
@@ -132,19 +108,11 @@ export default function App() {
             toneMapping: THREE.AgXToneMapping,
             toneMappingExposure: 1.15
           }}
-          camera={{
-            position: playIntro ? INTRO_CAMERA_POS : DEFAULT_CAMERA_POS,
-            fov: playIntro ? INTRO_FOV : DEFAULT_FOV,
-            near: 0.1,
-            far: 200
-          }}
+          camera={{ position: [7, 4.8, 7], fov: 40, near: 0.1, far: 200 }}
           onCreated={({ gl, scene, camera }) => {
             threeRef.current = { gl, scene, camera: camera as THREE.PerspectiveCamera }
           }}
         >
-          {/* Clouds + Flight are OUTSIDE Suspense so the intro starts during asset streaming */}
-          {playIntro && <CloudsLayer />}
-          {playIntro && <IntroFlight controlsRef={controlsRef} />}
           <Suspense fallback={null}>
             <SceneEnv />
             <Pergola />
@@ -155,7 +123,6 @@ export default function App() {
             ref={controlsRef}
             target={[0, 1, 0]}
             makeDefault
-            enabled={!introActive}
             enableDamping
             dampingFactor={0.06}
             minDistance={2}
@@ -165,35 +132,14 @@ export default function App() {
         </Canvas>
 
         {/* Viewpoint presets dock */}
-        <div
-          className="chrome-fade"
-          style={{ opacity: introActive ? uiReveal : 1 }}
-        >
-          <CameraDock />
-        </div>
+        <CameraDock />
 
         {/* Dynamic Brand Logo badge in top-left */}
-        <div
-          className="chrome-fade"
-          style={{ opacity: introActive ? uiReveal : 1 }}
-        >
-          <BrandLogo brand={brand} />
-        </div>
-
-        {/* Skip control while the intro flies */}
-        {introActive && <IntroOverlay />}
+        <BrandLogo brand={brand} />
       </div>
 
       {/* Minimalist Glassmorphic Configuration Panel */}
-      <div
-        className="chrome-fade"
-        style={{
-          opacity: introActive ? uiReveal : 1,
-          pointerEvents: introActive && uiReveal < 0.6 ? 'none' : 'auto'
-        }}
-      >
-        <Panel onCaptureViews={captureViews} />
-      </div>
+      <Panel onCaptureViews={captureViews} />
     </div>
   )
 }

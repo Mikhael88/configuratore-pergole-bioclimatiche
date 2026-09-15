@@ -4,7 +4,6 @@ import { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { onCameraPreset, getConfig } from '../lib/store'
 import { CameraPreset } from '../lib/types'
-import { getIntro } from '../intro/intro'
 
 const DEFAULT_FOV = 40
 const INTERIOR_FOV = 80
@@ -82,10 +81,6 @@ export function CameraController({ controlsRef }: { controlsRef: React.RefObject
 
   useEffect(() => {
     return onCameraPreset((preset: CameraPreset) => {
-      // Ignore preset requests while the intro flight owns the camera
-      const intro = getIntro()
-      if (intro.phase !== 'done' && intro.phase !== 'idle') return
-
       targetFov.current = preset === 'interior' ? INTERIOR_FOV : DEFAULT_FOV
 
       switch (preset) {
@@ -137,11 +132,7 @@ export function CameraController({ controlsRef }: { controlsRef: React.RefObject
   useFrame((_, delta) => {
     const perspective = camera as THREE.PerspectiveCamera
 
-    // While the intro flight owns the camera, skip preset lerping but keep
-    // the sidebar view-offset applied (IntroFlight sets fov/pos directly).
-    const introActive = getIntro().phase === 'flying'
-
-    if (!introActive && isTransitioning.current) {
+    if (isTransitioning.current) {
       const t = Math.min(1, delta * 4.5)
       camera.position.lerp(targetPos.current, t)
 
