@@ -1,4 +1,6 @@
-import { BrandConfig, BRANDS, DEFAULT_BRAND } from './brands'
+import { BrandConfig, BRANDS, DEFAULT_BRAND, APP_LOGO, getAppLogo } from './brands'
+
+export { APP_LOGO, getAppLogo }
 
 /**
  * Resolves the active brand configuration based on current hostname or URL overrides.
