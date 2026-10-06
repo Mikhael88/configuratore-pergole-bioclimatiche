@@ -42,6 +42,30 @@ export default function App() {
       document.head.appendChild(iconLink)
     }
     iconLink.href = brand.favicon
+    if (brand.favicon.endsWith('.png')) {
+      iconLink.type = 'image/png'
+    } else if (brand.favicon.endsWith('.svg')) {
+      iconLink.type = 'image/svg+xml'
+    } else {
+      iconLink.type = 'image/x-icon'
+    }
+
+    // Dynamic brand accent colors (isolated to brands with primaryColor specified)
+    if (brand.primaryColor) {
+      document.documentElement.style.setProperty('--primary-accent', brand.primaryColor)
+      document.documentElement.style.setProperty('--primary-hover', brand.primaryHover || brand.primaryColor)
+      document.documentElement.style.setProperty('--accent-light', brand.accentLight || 'rgba(226, 225, 0, 0.15)')
+      if (brand.contrastTextColor) {
+        document.documentElement.style.setProperty('--primary-contrast-text', brand.contrastTextColor)
+      }
+      document.documentElement.setAttribute('data-brand', brand.brandName.toLowerCase())
+    } else {
+      document.documentElement.style.removeProperty('--primary-accent')
+      document.documentElement.style.removeProperty('--primary-hover')
+      document.documentElement.style.removeProperty('--accent-light')
+      document.documentElement.style.removeProperty('--primary-contrast-text')
+      document.documentElement.removeAttribute('data-brand')
+    }
   }, [brand])
 
   // Capture clean multi-angle snapshots for PDF export

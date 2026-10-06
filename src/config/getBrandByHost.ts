@@ -20,6 +20,9 @@ export function getBrandByHost(hostname?: string): BrandConfig {
       const brandParam = params.get('brand')?.toLowerCase().trim()
       if (brandParam) {
         if (BRANDS[brandParam]) return BRANDS[brandParam]
+        if (brandParam === 'limago' || brandParam.includes('limago')) {
+          return BRANDS['pergole.limago.it']
+        }
         if (brandParam === 'arquati' || brandParam.includes('arquati')) {
           return BRANDS['arquati.tredo.it']
         }
@@ -36,6 +39,7 @@ export function getBrandByHost(hostname?: string): BrandConfig {
       // 2. Hash parameter override
       if (window.location.hash) {
         const hash = window.location.hash.toLowerCase()
+        if (hash.includes('brand=limago')) return BRANDS['pergole.limago.it']
         if (hash.includes('brand=arquati')) return BRANDS['arquati.tredo.it']
         if (hash.includes('brand=ke') || hash.includes('brand=keoutdoor')) {
           return BRANDS['keoutdoordesign.tredo.it']
@@ -56,6 +60,9 @@ export function getBrandByHost(hostname?: string): BrandConfig {
   }
 
   // 5. Keyword match for staging / preview subdomains
+  if (cleanHost.includes('limago')) {
+    return BRANDS['pergole.limago.it']
+  }
   if (cleanHost.includes('arquati')) {
     return BRANDS['arquati.tredo.it']
   }

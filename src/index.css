@@ -256,13 +256,14 @@ body, html, #root {
 
 .action-icon-btn.primary {
   background: var(--primary-accent);
-  color: #ffffff;
+  color: var(--primary-contrast-text, #ffffff);
   border-color: transparent;
   box-shadow: -1px -1px 3px rgba(255, 255, 255, 0.4), 2px 3px 8px rgba(37, 99, 235, 0.35);
 }
 
 .action-icon-btn.primary:hover {
   background: var(--primary-hover);
+  color: var(--primary-contrast-text, #ffffff);
 }
 
 .action-icon-btn.primary:active {
@@ -842,4 +843,356 @@ input:checked + .slider.round:before {
   color: var(--text-primary);
   text-transform: uppercase;
 }
+
+/* =========================================================================
+   TypeSafe Solar & Scenario Assistant (Sidebar Panel Card Theme)
+   ========================================================================= */
+
+.ai-panel-card {
+  background: var(--card-bg, rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--border-subtle, rgba(226, 232, 240, 0.8));
+  border-radius: var(--radius-lg, 14px);
+  padding: 16px;
+  box-shadow: var(--neu-extrude-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ai-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-panel-title h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.ai-sparkle-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.ai-model-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-bioclimatic-principle-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  line-height: 1.35;
+}
+
+.ai-bio-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+
+.ai-panel-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.ai-panel-desc b {
+  color: var(--text-primary);
+}
+
+.ai-chatbox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-chatbox textarea {
+  width: 100%;
+  background: rgba(248, 250, 252, 0.95);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 10px 12px;
+  resize: none;
+  box-shadow: var(--neu-pressed);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ai-chatbox textarea:focus {
+  outline: none;
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.ai-chat-btn {
+  background: var(--primary-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.ai-chat-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.ai-chat-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-spinner-blue {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: aiSpin 0.7s linear infinite;
+}
+
+.ai-error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.ai-chips-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-chips-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-chip-button {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: var(--text-secondary);
+  border-radius: 14px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-chip-button:hover:not(:disabled) {
+  border-color: var(--primary-accent);
+  color: var(--primary-accent);
+  background: var(--accent-light);
+  transform: translateY(-1px);
+}
+
+.ai-response-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.ai-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-metric-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.ai-metric-badge.highlight {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.ai-explanation-text {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.ai-simulation-box {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-simulation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.ai-sim-title {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.ai-sim-clock {
+  color: var(--primary-accent);
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ai-simulation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-sim-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-sim-play:hover {
+  background: #e2e8f0;
+}
+
+.ai-sim-play.active {
+  background: var(--accent-light);
+  border-color: var(--primary-accent);
+  color: var(--primary-accent);
+}
+
+.ai-sim-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--primary-accent);
+}
+
+.ai-sim-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ================= LIMAGO BRAND THEME OVERRIDES (#E2E100) ================= */
+[data-brand="limago"] .action-icon-btn.primary {
+  box-shadow: -1px -1px 3px rgba(255, 255, 255, 0.4), 2px 3px 8px rgba(226, 225, 0, 0.45);
+}
+
+[data-brand="limago"] .tab-btn.active {
+  color: #686700;
+  border-bottom: 2px solid var(--primary-accent);
+  box-shadow: var(--neu-pressed), 0 0 0 1px rgba(226, 225, 0, 0.4);
+}
+
+[data-brand="limago"] .dock-btn:hover,
+[data-brand="limago"] .dock-btn.active,
+[data-brand="limago"] .viewport-tool-btn.active {
+  color: #686700;
+  border-color: rgba(226, 225, 0, 0.5);
+}
+
+[data-brand="limago"] .row-val {
+  color: #686700;
+}
+
+[data-brand="limago"] .choice-card.active,
+[data-brand="limago"] .pill-btn.active,
+[data-brand="limago"] .swatch-card-large.active {
+  border-color: rgba(226, 225, 0, 0.6);
+  box-shadow: var(--neu-pressed), 0 0 0 1px rgba(226, 225, 0, 0.35);
+}
+
+[data-brand="limago"] .pill-btn.active,
+[data-brand="limago"] .subtab-btn.active {
+  color: #686700;
+}
+
+
 
